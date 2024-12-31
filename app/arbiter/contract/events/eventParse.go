@@ -6,7 +6,6 @@ import (
 	"bytes"
 	"encoding/gob"
 	"fmt"
-	"math"
 	"math/big"
 	"os"
 	"path/filepath"
@@ -62,7 +61,7 @@ func GetCurrentBlock(datadir string) (uint64, error) {
 
 	fileContent, err := os.ReadFile(fielPath)
 	if err != nil {
-		return math.MaxUint64, err
+		return 0, err
 	}
 	block := big.NewInt(0).SetBytes(fileContent)
 	return block.Uint64(), nil

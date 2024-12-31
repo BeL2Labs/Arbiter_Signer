@@ -136,9 +136,7 @@ func (c *ArbitratorContract) Start(startHeight uint64) error {
 
 	for {
 		endBlock, err := c.listener.Start(startHeight)
-		if err != nil {
-			g.Log().Error(c.ctx, "listener start error", err)
-		} else {
+		if err == nil {
 			err = events.UpdateCurrentBlock(c.cfg.DataDir, endBlock)
 			if err != nil {
 				g.Log().Error(c.ctx, "UpdateCurrentBlock faield ", err)

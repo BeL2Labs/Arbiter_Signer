@@ -109,13 +109,12 @@ func (v *Arbiter) Start() {
 func (v *Arbiter) listenESCContract() {
 	g.Log().Info(v.ctx, "listenESCContract start")
 
-	startHeight, err := events.GetCurrentBlock(v.config.DataDir)
-	if err == nil {
-		v.config.ESCStartHeight = startHeight
+	startHeight, _ := events.GetCurrentBlock(v.config.DataDir)
+	if v.config.ESCStartHeight > startHeight {
+		startHeight = v.config.ESCStartHeight
 	}
-	startBlock := v.config.ESCStartHeight
-	keyfile := v.config.EscKeyFilePath
 
+	keyfile := v.config.EscKeyFilePath
 	data, err := os.ReadFile(keyfile)
 	if err != nil {
 		g.Log().Fatal(v.ctx, "get keyfile error", err, " private key path ", keyfile)
@@ -126,7 +125,7 @@ func (v *Arbiter) listenESCContract() {
 		g.Log().Fatal(v.ctx, "Unmarshal keyfile error", err, " content ", string(data))
 	}
 
-	v.escNode.Start(startBlock)
+	v.escNode.Start(startHeight)
 }
 
 func (v *Arbiter) processArbiterSig() {

@@ -4,6 +4,7 @@ package contract
 
 import (
 	"context"
+	"errors"
 	"math"
 	"math/big"
 
@@ -40,27 +41,28 @@ func (c *ContractListener) Start(startHeight uint64) (uint64, error) {
 		g.Log().Warning(c.ctx, "GetLatestHeight failed", err)
 		return math.MaxUint64, err
 	}
-	endBlock -= 2
+	if startHeight > endBlock-2 {
+		return math.MaxUint64, errors.New("start block must be less than end block")
+	}
 
 	distance := uint64(10000)
 	toBlock := startHeight
 	loanQuery := c.queryClient.BuildQuery(c.loanContract, c.listeneTopics, nil, nil)
-	for i := startHeight; i <= endBlock; i = toBlock + 1 {
+	for i := startHeight; i <= endBlock-2; i += distance {
 		if i+distance < endBlock {
 			toBlock = i + distance
 		} else {
-			toBlock = endBlock
+			toBlock = endBlock - 2
 		}
 		loanQuery.FromBlock = big.NewInt(0).SetUint64(i)
 		loanQuery.ToBlock = big.NewInt(0).SetUint64(toBlock)
-		g.Log().Infof(c.ctx, "pull block from %v to %v", i, toBlock)
+		g.Log().Infof(c.ctx, "pull block from %d to %d", i, toBlock)
 		err = c.filterLoanEvent(loanQuery)
 		if err != nil {
 			g.Log().Error(c.ctx, "filter filterLoanEvent failed, error:", err)
 		}
 	}
-
-	return endBlock, nil
+	return toBlock, nil
 }
 
 func (c *ContractListener) filterLoanEvent(query ethereum.FilterQuery) error {
