@@ -10,14 +10,13 @@ import (
 	"strings"
 	"sync"
 
-	"Arbiter_Signer/app/arbiter/config"
-
 	_ "github.com/gogf/gf/contrib/drivers/pgsql/v2"
 	"github.com/gogf/gf/os/gfile"
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/os/gctx"
 
-	"Arbiter_Signer/app/arbiter/arbiter"
+	"github.com/BeL2Labs/Arbiter_Signer/app/arbiter/config"
+	"github.com/BeL2Labs/Arbiter_Signer/app/arbiter/arbiter"
 )
 
 func main() {

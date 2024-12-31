@@ -1,4 +1,4 @@
-module Arbiter_Signer
+module github.com/BeL2Labs/Arbiter_Signer
 
 go 1.20
 

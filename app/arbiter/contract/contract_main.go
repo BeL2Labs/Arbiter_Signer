@@ -11,15 +11,15 @@ import (
 	"strings"
 	"time"
 
-	"Arbiter_Signer/app/arbiter/config"
-	"Arbiter_Signer/app/arbiter/contract/contract_abi"
-	"Arbiter_Signer/app/arbiter/contract/events"
-
 	"github.com/gogf/gf/v2/frame/g"
-
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
+
+	"github.com/BeL2Labs/Arbiter_Signer/app/arbiter/config"
+	"github.com/BeL2Labs/Arbiter_Signer/app/arbiter/contract/contract_abi"
+	"github.com/BeL2Labs/Arbiter_Signer/app/arbiter/contract/events"
+
 )
 
 type ArbitratorContract struct {

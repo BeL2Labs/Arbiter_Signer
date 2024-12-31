@@ -7,7 +7,7 @@ import (
 	"math"
 	"math/big"
 
-	"Arbiter_Signer/app/arbiter/contract/events"
+	"github.com/BeL2Labs/Arbiter_Signer/app/arbiter/contract/events"
 
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
