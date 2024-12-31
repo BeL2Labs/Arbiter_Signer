@@ -1,6 +1,6 @@
 Arbiter Signer
 =============
-[![Code Report()](https://goreportcard.com/badge/github.com/BeL2Labs/Arbiter_Signer)](https://goreportcard.com/report/github.com/BeL2Labs/Arbiter_Signer)
+[![Go Report Card](https://goreportcard.com/badge/github.com/BeL2Labs/Arbiter_Signer)](https://goreportcard.com/report/github.com/BeL2Labs/Arbiter_Signer)
 [![Build Status](https://github.com/BeL2Labs/Arbiter_Signer/workflows/Build%20and%20Test/badge.svg)](https://github.com/BeL2Labs/Arbiter_Signer/actions)
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](http://copyfree.org)
 [![GoDoc](https://img.shields.io/badge/godoc-reference-blue.svg)](https://pkg.go.dev/github.com/BeL2Labs/Arbiter_Signer)
@@ -111,5 +111,5 @@ run arbiter with custom manifest file
 The automated deployment process can be referenced in the documentation: 
 [deploy_loan_arbiter.md](https://github.com/BeL2Labs/Arbiter_Signer/blob/main/docs/deploy_loan_arbiter.md)
 
-License
+## License
 arbiter signer is licensed under the [copyfree](http://copyfree.org)  MIT License.
