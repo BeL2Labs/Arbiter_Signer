@@ -43,7 +43,7 @@ func (c *ContractListener) Start(startHeight uint64) (uint64, error) {
 	endBlock -= 2
 
 	distance := uint64(10000)
-	var toBlock = startHeight
+	toBlock := startHeight
 	loanQuery := c.queryClient.BuildQuery(c.loanContract, c.listeneTopics, nil, nil)
 	for i := startHeight; i <= endBlock; i = toBlock + 1 {
 		if i+distance < endBlock {

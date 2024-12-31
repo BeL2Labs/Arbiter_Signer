@@ -82,8 +82,7 @@ func NewArbiter(ctx context.Context, config *config.Config) *Arbiter {
 	}
 	logger := log.New(logFile, "", log.Ldate|log.Ltime)
 
-	escNode := &contract.ArbitratorContract{}
-	escNode = newESCNode(ctx, config, escAccount.PrivateKey, logger)
+	escNode := newESCNode(ctx, config, escAccount.PrivateKey, logger)
 
 	mempoolAPI := mempool.NewAPI(mempool.Config{Network: config.Network})
 
@@ -99,7 +98,7 @@ func NewArbiter(ctx context.Context, config *config.Config) *Arbiter {
 
 func (v *Arbiter) Start() {
 	if v.config.Signer {
-		go v.processArbiterSignature()
+		go v.processArbiterSig()
 	}
 
 	if v.config.Listener {
@@ -130,7 +129,7 @@ func (v *Arbiter) listenESCContract() {
 	v.escNode.Start(startBlock)
 }
 
-func (v *Arbiter) processArbiterSignature() {
+func (v *Arbiter) processArbiterSig() {
 	g.Log().Info(v.ctx, "processArbiterSignature start")
 
 	var netWorkParams = chaincfg.MainNetParams

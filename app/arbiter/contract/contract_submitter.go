@@ -26,6 +26,9 @@ type ContractSubmitter struct {
 
 func NewSubmitter(ctx context.Context, client *CrossClient, privateKey string) (*ContractSubmitter, error) {
 	pri, err := hex.DecodeString(privateKey)
+	if err != nil {
+		return nil, err
+	}
 	kp, err := secp256k1.NewKeypairFromPrivateKey(pri)
 	if err != nil {
 		return nil, err
