@@ -11,15 +11,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gogf/gf/v2/frame/g"
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/gogf/gf/v2/frame/g"
 
 	"github.com/BeL2Labs/Arbiter_Signer/app/arbiter/config"
 	"github.com/BeL2Labs/Arbiter_Signer/app/arbiter/contract/contract_abi"
 	"github.com/BeL2Labs/Arbiter_Signer/app/arbiter/contract/events"
-
 )
 
 type ArbitratorContract struct {
@@ -122,32 +121,31 @@ func (c *ArbitratorContract) Start(startHeight uint64) error {
 			"operator from config:" + arbitratorOperatorAddress.String())
 	}
 
-	for {
-		go func() {
-			endBlock, err := c.listener.Start(startHeight)
-			if err != nil {
-				g.Log().Error(c.ctx, "listener start error", err)
-				time.Sleep(5 * time.Second)
-				c.chan_interrupt <- struct{}{}
-				return
+	go func() {
+		for {
+			select {
+			case evt := <-c.chan_event:
+				err := c.parseContractEvent(evt)
+				if err != nil {
+					g.Log().Error(c.ctx, "parseContractEvent failed ", err)
+				}
+				// g.Log().Info(c.ctx, "parseContractEvent success:", evt)
 			}
+		}
+	}()
+
+	for {
+		endBlock, err := c.listener.Start(startHeight)
+		if err != nil {
+			g.Log().Error(c.ctx, "listener start error", err)
+		} else {
 			err = events.UpdateCurrentBlock(c.cfg.DataDir, endBlock)
 			if err != nil {
 				g.Log().Error(c.ctx, "UpdateCurrentBlock faield ", err)
 			}
-			time.Sleep(5 * time.Second)
-			c.chan_interrupt <- struct{}{}
 			startHeight = endBlock + 1
-		}()
-		select {
-		case evt := <-c.chan_event:
-			err := c.parseContractEvent(evt)
-			if err != nil {
-				g.Log().Error(c.ctx, "parseContractEvent failed ", err)
-			}
-			// g.Log().Info(c.ctx, "parseContractEvent success:", evt)
-		case <-c.chan_interrupt:
 		}
+		time.Sleep(5 * time.Second)
 	}
 
 }
