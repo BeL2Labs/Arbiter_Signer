@@ -167,8 +167,8 @@ func (v *Arbiter) processArbiterSig() {
 				continue
 			}
 			g.Log().Info(v.ctx, "ev", ev)
-			dappAddress := logEvt.Topics[1]
-			queryId := logEvt.Topics[2]
+			queryId := logEvt.Topics[1]
+			dappAddress := logEvt.Topics[2]
 			rawData := ev["btcTx"].([]byte)
 			script := ev["script"].([]byte)
 			arbitratorAddress := ev["arbitrator"].(common.Address)

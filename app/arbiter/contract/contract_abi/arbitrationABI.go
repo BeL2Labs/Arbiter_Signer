@@ -50,15 +50,21 @@ const ArbiterABI = `[
       "inputs": [
         {
           "indexed": true,
+          "internalType": "bytes32",
+          "name": "txId",
+          "type": "bytes32"
+        },
+        {
+          "indexed": true,
           "internalType": "address",
           "name": "dapp",
           "type": "address"
         },
         {
-          "indexed": true,
-          "internalType": "bytes32",
-          "name": "txId",
-          "type": "bytes32"
+          "indexed": false,
+          "internalType": "address",
+          "name": "arbitrator",
+          "type": "address"
         },
         {
           "indexed": false,
@@ -75,7 +81,7 @@ const ArbiterABI = `[
         {
           "indexed": false,
           "internalType": "address",
-          "name": "arbitrator",
+          "name": "timeoutCompensationReceiver",
           "type": "address"
         }
       ],
@@ -87,31 +93,30 @@ const ArbiterABI = `[
       "inputs": [
         {
           "indexed": true,
+          "internalType": "bytes32",
+          "name": "txId",
+          "type": "bytes32"
+        },
+        {
+          "indexed": true,
           "internalType": "address",
           "name": "dapp",
           "type": "address"
         },
         {
           "indexed": true,
-          "internalType": "bytes32",
-          "name": "txId",
-          "type": "bytes32"
+          "internalType": "address",
+          "name": "arbitrator",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "bytes",
+          "name": "btcTxSignature",
+          "type": "bytes"
         }
       ],
       "name": "ArbitrationSubmitted",
-      "type": "event"
-    },
-    {
-      "anonymous": false,
-      "inputs": [
-        {
-          "indexed": true,
-          "internalType": "address",
-          "name": "compensationManager",
-          "type": "address"
-        }
-      ],
-      "name": "CompensationManagerInitialized",
       "type": "event"
     },
     {
@@ -165,55 +170,17 @@ const ArbiterABI = `[
         {
           "indexed": true,
           "internalType": "bytes32",
-          "name": "id",
+          "name": "txId",
           "type": "bytes32"
-        }
-      ],
-      "name": "TransactionCancelled",
-      "type": "event"
-    },
-    {
-      "anonymous": false,
-      "inputs": [
+        },
         {
           "indexed": true,
           "internalType": "address",
           "name": "dapp",
           "type": "address"
-        },
-        {
-          "indexed": true,
-          "internalType": "bytes32",
-          "name": "txId",
-          "type": "bytes32"
         }
       ],
       "name": "TransactionCompleted",
-      "type": "event"
-    },
-    {
-      "anonymous": false,
-      "inputs": [
-        {
-          "indexed": true,
-          "internalType": "bytes32",
-          "name": "id",
-          "type": "bytes32"
-        },
-        {
-          "indexed": true,
-          "internalType": "address",
-          "name": "sender",
-          "type": "address"
-        },
-        {
-          "indexed": true,
-          "internalType": "address",
-          "name": "arbitrator",
-          "type": "address"
-        }
-      ],
-      "name": "TransactionCreated",
       "type": "event"
     },
     {
@@ -248,9 +215,34 @@ const ArbiterABI = `[
           "internalType": "uint256",
           "name": "depositFee",
           "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "compensationReceiver",
+          "type": "address"
         }
       ],
       "name": "TransactionRegistered",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "bytes32",
+          "name": "txId",
+          "type": "bytes32"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "dapp",
+          "type": "address"
+        }
+      ],
+      "name": "UTXOsUploaded",
       "type": "event"
     },
     {
@@ -288,6 +280,24 @@ const ArbiterABI = `[
         }
       ],
       "name": "completeTransaction",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "id",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "address",
+          "name": "receivedCompensationAddress",
+          "type": "address"
+        }
+      ],
+      "name": "completeTransactionWithSlash",
       "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"
@@ -562,19 +572,6 @@ const ArbiterABI = `[
       "inputs": [
         {
           "internalType": "address",
-          "name": "_compensationManager",
-          "type": "address"
-        }
-      ],
-      "name": "initCompensationManager",
-      "outputs": [],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "address",
           "name": "_arbitratorManager",
           "type": "address"
         },
@@ -586,6 +583,11 @@ const ArbiterABI = `[
         {
           "internalType": "address",
           "name": "_configManager",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "_compensationManager",
           "type": "address"
         }
       ],
@@ -628,33 +630,6 @@ const ArbiterABI = `[
     },
     {
       "inputs": [
-        {
-          "components": [
-            {
-              "internalType": "bytes32",
-              "name": "txHash",
-              "type": "bytes32"
-            },
-            {
-              "internalType": "uint32",
-              "name": "index",
-              "type": "uint32"
-            },
-            {
-              "internalType": "bytes",
-              "name": "script",
-              "type": "bytes"
-            },
-            {
-              "internalType": "uint256",
-              "name": "amount",
-              "type": "uint256"
-            }
-          ],
-          "internalType": "struct DataTypes.UTXO[]",
-          "name": "utxos",
-          "type": "tuple[]"
-        },
         {
           "internalType": "address",
           "name": "arbitrator",
@@ -876,6 +851,46 @@ const ArbiterABI = `[
         }
       ],
       "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "id",
+          "type": "bytes32"
+        },
+        {
+          "components": [
+            {
+              "internalType": "bytes32",
+              "name": "txHash",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "uint32",
+              "name": "index",
+              "type": "uint32"
+            },
+            {
+              "internalType": "bytes",
+              "name": "script",
+              "type": "bytes"
+            },
+            {
+              "internalType": "uint256",
+              "name": "amount",
+              "type": "uint256"
+            }
+          ],
+          "internalType": "struct DataTypes.UTXO[]",
+          "name": "utxos",
+          "type": "tuple[]"
+        }
+      ],
+      "name": "uploadUTXOs",
+      "outputs": [],
+      "stateMutability": "nonpayable",
       "type": "function"
     }
   ]`
