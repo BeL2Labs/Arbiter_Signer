@@ -1,5 +1,6 @@
-## deploy arbiter
+# deploy arbiter
 
+## deploy by script
 1. Log in to the server
 
 2. Enter the home directory
@@ -59,4 +60,29 @@
    ```shell
    cd ~/loan_arbiter
    ./arbiter --gf.gcfg.file=config.yaml  > ~/loan_arbiter/data/logs/arbiter.log 2>&1 &
+   ```
+
+## deploy by docker
+
+1. install docker
+
+2. Enter the home directory
+   ```shell
+   cd ~
+   ```
+
+3. Download deploy script 
+   ```shell
+   wget https://download.bel2.org/loan-arbiter/docker_run_arbiter_signer.sh
+   ```
+
+4. Script permission changes
+   ```shell
+   chmod a+x docker_run_arbiter_signer.sh
+   ```
+
+5. Execute deploy script
+
+   ```shell
+   ./docker_run_arbiter_signer.sh
    ```

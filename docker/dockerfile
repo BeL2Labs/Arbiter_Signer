@@ -1,0 +1,10 @@
+FROM ubuntu:20.04
+RUN apt-get update && apt-get install -y curl
+RUN cd ~
+RUN apt-get install wget -y
+RUN wget https://download.bel2.org/loan-arbiter/deploy_loan_arbiter.sh
+RUN chmod a+x deploy_loan_arbiter.sh
+RUN echo $ARBITER_ADDRESS  
+RUN echo $ARBITER_BTC_PRIVATE_KEY
+RUN echo $ARBITER_ESC_PRIVATE_KEY
+ENTRYPOINT ["/bin/bash", "-c", "./deploy_loan_arbiter.sh \"$ARBITER_ADDRESS\" \"$ARBITER_BTC_PRIVATE_KEY\" \"$ARBITER_ESC_PRIVATE_KEY\"; tail -f /dev/null"]
