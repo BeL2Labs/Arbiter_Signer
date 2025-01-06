@@ -11,6 +11,7 @@ import (
 	"encoding/hex"
 	"log"
 	"os"
+	"sort"
 	"strconv"
 	"time"
 
@@ -85,10 +86,6 @@ func (e *Email) sendEmail() error {
 			continue
 		}
 
-		type BlockID struct {
-			Block   string
-			QueryId string
-		}
 		eventsMap := make(map[string][]BlockID)
 		for _, file := range files {
 			// read file
@@ -135,6 +132,7 @@ func (e *Email) sendEmail() error {
 		subject := "Request Arbitration Events"
 		body := ""
 		for k, v := range eventsMap {
+			sort.Sort(ByBlockID(v))
 			body += "Arbitrator: " + k + "\n"
 			body += "=======================================================================\n"
 			for _, blockID := range v {
@@ -159,6 +157,9 @@ func (e *Email) sendEmail() error {
 		// }
 		// body += "</body></html>"
 
+		if body == "" {
+			body = "No events"
+		}
 		g.Log().Info(e.ctx, "start send email")
 		g.Log().Info(e.ctx, "subject", subject)
 		g.Log().Info(e.ctx, "body", body)
@@ -183,6 +184,31 @@ func (e *Email) listenESCContract() {
 	}
 
 	e.escNode.Start(startHeight)
+}
+
+type BlockID struct {
+	Block   string
+	QueryId string
+}
+
+type ByBlockID []BlockID
+
+func (b ByBlockID) Len() int {
+	return len(b)
+}
+func (b ByBlockID) Less(i, j int) bool {
+	blockI, errI := strconv.ParseUint(b[i].Block, 10, 64)
+	blockJ, errJ := strconv.ParseUint(b[j].Block, 10, 64)
+	if errI != nil {
+		return true
+	}
+	if errJ != nil {
+		return false
+	}
+	return blockI < blockJ
+}
+func (b ByBlockID) Swap(i, j int) {
+	b[i], b[j] = b[j], b[i]
 }
 
 func decodeTx(txBytes []byte) (*wire.MsgTx, error) {
