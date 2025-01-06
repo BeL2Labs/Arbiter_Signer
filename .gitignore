@@ -17,6 +17,10 @@ temp.yaml
 bin
 logs.txt
 app/arbiter/data
+app/email/data
 vendor/
 config.json
+arbiter_rpc
+arbiter_web
+arbiter_email
 

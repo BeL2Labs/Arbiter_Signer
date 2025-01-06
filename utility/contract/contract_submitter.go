@@ -16,6 +16,7 @@ import (
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/gogf/gf/v2/frame/g"
 )
 
 type ContractSubmitter struct {
@@ -29,10 +30,17 @@ func NewSubmitter(ctx context.Context, client *CrossClient, privateKey string) (
 	if err != nil {
 		return nil, err
 	}
-	kp, err := secp256k1.NewKeypairFromPrivateKey(pri)
-	if err != nil {
-		return nil, err
+
+	var kp crypto.Keypair
+	if privateKey != "" {
+		kp, err = secp256k1.NewKeypairFromPrivateKey(pri)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		g.Log().Warning(ctx, "submitter is nil, because private key is empty")
 	}
+
 	submitter := &ContractSubmitter{
 		client:  client,
 		ctx:     ctx,

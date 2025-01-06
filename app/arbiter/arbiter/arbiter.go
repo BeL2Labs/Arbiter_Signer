@@ -28,7 +28,7 @@ import (
 
 	"github.com/BeL2Labs/Arbiter_Signer/app/arbiter/api/mempool"
 	"github.com/BeL2Labs/Arbiter_Signer/app/arbiter/config"
-	"github.com/BeL2Labs/Arbiter_Signer/app/arbiter/contract"
+	"github.com/BeL2Labs/Arbiter_Signer/utility/contract"
 	"github.com/BeL2Labs/Arbiter_Signer/utility/events"
 )
 
@@ -348,7 +348,20 @@ func newESCNode(ctx context.Context, config *config.Config, privateKey string, l
 		config.ESCStartHeight = startHeight
 	}
 
-	contractNode, err := contract.New(ctx, config, privateKey, logger)
+	arbiterAddresses := map[string]struct{}{
+		config.ESCArbiterAddress: {},
+	}
+	cfg := &contract.Config{
+		Http:                             config.Http,
+		ESCArbiterManagerContractAddress: config.ESCArbiterManagerContractAddress,
+		ESCArbiterContractAddress:        config.ESCArbiterContractAddress,
+		ESCArbiterAddresses:              arbiterAddresses,
+		DataDir:                          config.DataDir,
+		LoanNeedSignReqPath:              config.LoanNeedSignReqPath,
+		LoanSignedEventPath:              config.LoanSignedEventPath,
+	}
+
+	contractNode, err := contract.New(ctx, cfg, privateKey, logger)
 	if err != nil {
 		g.Log().Fatal(ctx, err)
 	}

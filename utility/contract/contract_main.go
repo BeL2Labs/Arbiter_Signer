@@ -16,7 +16,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/gogf/gf/v2/frame/g"
 
-	"github.com/BeL2Labs/Arbiter_Signer/app/arbiter/config"
 	"github.com/BeL2Labs/Arbiter_Signer/utility/contract_abi"
 	"github.com/BeL2Labs/Arbiter_Signer/utility/events"
 )
@@ -33,7 +32,8 @@ type ArbitratorContract struct {
 
 	loanContract           *common.Address
 	arbiterManagerContract *common.Address
-	cfg                    *config.Config
+
+	cfg *Config
 
 	logger *log.Logger
 }
@@ -60,7 +60,7 @@ type ArbitratorInfo struct {
 	LastSubmittedWorkTime time.Time        // Last submitted work time
 }
 
-func New(ctx context.Context, cfg *config.Config, privateKey string, logger *log.Logger) (*ArbitratorContract, error) {
+func New(ctx context.Context, cfg *Config, privateKey string, logger *log.Logger) (*ArbitratorContract, error) {
 	client, err := ConnectRPC(cfg.Http)
 	if err != nil {
 		return nil, err
@@ -87,6 +87,7 @@ func New(ctx context.Context, cfg *config.Config, privateKey string, logger *log
 	if err != nil {
 		return nil, err
 	}
+
 	c := &ArbitratorContract{
 		listener:               listener,
 		submitter:              submitter,
@@ -105,21 +106,7 @@ func New(ctx context.Context, cfg *config.Config, privateKey string, logger *log
 
 func (c *ArbitratorContract) Start(startHeight uint64) error {
 
-	// get arbitrator operator address
-	arbiterAddress := common.HexToAddress(c.cfg.ESCArbiterAddress)
-	arbitratorOperatorAddress, err := c.getArbiterOperatorAddress(arbiterAddress)
-	if err != nil {
-		g.Log().Error(c.ctx, "GetArbiterOperatorAddress error", err)
-		panic("invalid arbiter address, err:" + err.Error())
-	}
-	g.Log().Info(c.ctx, "arbitratorOperatorAddress", arbitratorOperatorAddress)
-	// check operator address
-	if c.submitter.keypair.Address() != arbitratorOperatorAddress.String() {
-		g.Log().Error(c.ctx, "Invalid operator address from arbiter address")
-		panic("invalid operator address, " +
-			"operator from key file:" + c.submitter.keypair.Address() +
-			"operator from config:" + arbitratorOperatorAddress.String())
-	}
+	c.checkArbiterOperatorKey()
 
 	go func() {
 		for {
@@ -148,14 +135,46 @@ func (c *ArbitratorContract) Start(startHeight uint64) error {
 
 }
 
+func (c *ArbitratorContract) checkArbiterOperatorKey() {
+	if len(c.cfg.ESCArbiterAddresses) == 0 {
+		g.Log().Info(c.ctx, "ESCArbiterAddresses is empty")
+		return
+	}
+	if c.submitter.keypair == nil {
+		return
+	}
+	for escArbiterAddress := range c.cfg.ESCArbiterAddresses {
+		if escArbiterAddress == "" {
+			g.Log().Info(c.ctx, "ESCArbiterAddress is empty")
+			return
+		}
+		// get arbitrator operator address
+		arbiterAddress := common.HexToAddress(escArbiterAddress)
+		arbitratorOperatorAddress, err := c.getArbiterOperatorAddress(arbiterAddress)
+		if err != nil {
+			g.Log().Error(c.ctx, "GetArbiterOperatorAddress error", err)
+			panic("invalid arbiter address, err:" + err.Error())
+		}
+		g.Log().Info(c.ctx, "arbitratorOperatorAddress", arbitratorOperatorAddress)
+		// check operator address
+		if c.submitter.keypair.Address() != arbitratorOperatorAddress.String() {
+			g.Log().Error(c.ctx, "Invalid operator address from arbiter address")
+			panic("invalid operator address, " +
+				"operator from key file:" + c.submitter.keypair.Address() +
+				"operator from config:" + arbitratorOperatorAddress.String())
+		}
+	}
+
+}
+
 func (c *ArbitratorContract) parseContractEvent(event *events.ContractLogEvent) error {
 	var err error
 	if event.Topics[0].Cmp(events.ArbitrationRequested) == 0 {
 		err = c.parseTransferNeedSignEvent(event)
 		fmt.Println("ArbitrationRequested  >>>>>>>>>>>>>>>> received")
 	} else if event.Topics[0].Cmp(events.ArbitrationResultSubmitted) == 0 {
-		err = c.parseTransferSignedEvent(event)
-		fmt.Println("ArbitrationResultSubmitted  >>>>>>>>>>>>>>>> received")
+		// err = c.parseTransferSignedEvent(event)
+		// fmt.Println("ArbitrationResultSubmitted  >>>>>>>>>>>>>>>> received")
 	}
 	return err
 }
@@ -171,17 +190,21 @@ func (c *ArbitratorContract) parseTransferNeedSignEvent(event *events.ContractLo
 		g.Log().Error(c.ctx, "parseTransferNeedSignEvent UnpackIntoMap error", err)
 		return err
 	}
-	if ev["arbitrator"].(common.Address).String() != c.cfg.ESCArbiterAddress {
+	addr := ev["arbitrator"].(common.Address).String()
+	if _, ok := c.cfg.ESCArbiterAddresses[addr]; !ok {
 		g.Log().Debug(c.ctx, "find ArbitrationRequested event, but not mine")
 		return nil
 	}
 	c.logger.Println("[INF] EVENT: ArbitrationRequested, block:", event.Block, "tx:", event.TxHash)
 
-	path := c.cfg.LoanNeedSignReqPath + "/" + event.TxHash.String()
-	err = events.SaveContractEvent(path, event)
-	if err != nil {
-		g.Log().Error(c.ctx, "SaveContractEvent error", err)
+	if c.cfg.LoanNeedSignReqPath != "" {
+		path := c.cfg.LoanNeedSignReqPath + "/" + event.TxHash.String()
+		err = events.SaveContractEvent(path, event)
+		if err != nil {
+			g.Log().Error(c.ctx, "SaveContractEvent error", err)
+		}
 	}
+
 	g.Log().Noticef(c.ctx, "find btc tx need sign:%s ", event.TxHash.String())
 	return err
 }
@@ -193,10 +216,12 @@ func (c *ArbitratorContract) parseTransferSignedEvent(event *events.ContractLogE
 		g.Log().Error(c.ctx, "parseTransferSignedEvent UnpackIntoMap error", err)
 		return err
 	}
-	path := c.cfg.LoanSignedEventPath + "/" + event.TxHash.String()
-	err = events.SaveContractEvent(path, event)
-	if err != nil {
-		g.Log().Error(c.ctx, "SaveContractEvent error", err)
+	if c.cfg.LoanSignedEventPath != "" {
+		path := c.cfg.LoanSignedEventPath + "/" + event.TxHash.String()
+		err = events.SaveContractEvent(path, event)
+		if err != nil {
+			g.Log().Error(c.ctx, "SaveContractEvent error", err)
+		}
 	}
 	g.Log().Noticef(c.ctx, "find btc tx signed:%s ", event.TxHash.String())
 	return err
@@ -218,10 +243,12 @@ func (c *ArbitratorContract) getArbiterOperatorAddress(arbiter common.Address) (
 	}
 	// use c.arbiterManagerContract to call get getArbitratorInfo operator address
 	msg := ethereum.CallMsg{From: common.Address{}, To: c.arbiterManagerContract, Data: input}
+	g.Log().Info(c.ctx, "getArbitratorInfo msg:", msg)
 	result, err := c.submitter.CallContract(context.TODO(), msg, nil)
 	if err != nil {
 		return common.Address{}, err
 	}
+	g.Log().Info(c.ctx, "getArbitratorInfo result:", result)
 	ev, err := c.Arbiter_manager_abi.Unpack("getArbitratorInfo", result)
 	if err != nil || len(ev) == 0 {
 		g.Log().Error(c.ctx, "parse ArbitratorInfo UnpackIntoMap error", err)
