@@ -9,7 +9,6 @@
 bin/
 **/.DS_Store
 gf
-arbiter.exe
 output/
 manifest/output/
 temp/

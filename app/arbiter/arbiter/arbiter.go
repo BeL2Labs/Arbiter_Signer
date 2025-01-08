@@ -253,7 +253,7 @@ func (v *Arbiter) processArbiterSig() {
 				continue
 			}
 			signatureBytes := signatureArbiter.Serialize()
-			signatureBytes = append(signatureBytes, byte(txscript.SigHashAll))
+			// signatureBytes = append(signatureBytes, byte(txscript.SigHashAll))
 			g.Log().Info(v.ctx, "arbiter signature:", hex.EncodeToString(signatureBytes))
 
 			// feedback signature to contract
