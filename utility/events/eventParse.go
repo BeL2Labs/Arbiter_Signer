@@ -41,6 +41,10 @@ func SaveContractEvent(path string, event *ContractLogEvent) error {
 	return err
 }
 
+func RemoveContractEvent(path string) error {
+	return os.Remove(path)
+}
+
 func UpdateCurrentBlock(datadir string, block uint64) error {
 	fielPath := datadir + "/" + "listened_block.txt"
 	dir := filepath.Dir(fielPath)

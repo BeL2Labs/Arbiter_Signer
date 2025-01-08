@@ -5,6 +5,7 @@ package contract
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"math/big"
@@ -172,9 +173,9 @@ func (c *ArbitratorContract) parseContractEvent(event *events.ContractLogEvent) 
 	if event.Topics[0].Cmp(events.ArbitrationRequested) == 0 {
 		err = c.parseTransferNeedSignEvent(event)
 		fmt.Println("ArbitrationRequested  >>>>>>>>>>>>>>>> received")
-	} else if event.Topics[0].Cmp(events.ArbitrationResultSubmitted) == 0 {
-		// err = c.parseTransferSignedEvent(event)
-		// fmt.Println("ArbitrationResultSubmitted  >>>>>>>>>>>>>>>> received")
+	} else if event.Topics[0].Cmp(events.ArbitrationSubmitted) == 0 {
+		err = c.parseTransferSignedEvent(event)
+		fmt.Println("ArbitrationSubmitted  >>>>>>>>>>>>>>>> received")
 	}
 	return err
 }
@@ -190,32 +191,48 @@ func (c *ArbitratorContract) parseTransferNeedSignEvent(event *events.ContractLo
 		g.Log().Error(c.ctx, "parseTransferNeedSignEvent UnpackIntoMap error", err)
 		return err
 	}
+	if ev["arbitrator"] == nil {
+		g.Log().Error(c.ctx, "arbitrator is nil")
+		return errors.New("arbitrator is nil")
+	}
 	addr := ev["arbitrator"].(common.Address).String()
-	if _, ok := c.cfg.ESCArbiterAddresses[addr]; !ok {
+	if _, ok := c.cfg.ESCArbiterAddresses[strings.ToLower(addr)]; !ok {
 		g.Log().Debug(c.ctx, "find ArbitrationRequested event, but not mine")
 		return nil
 	}
-	c.logger.Println("[INF] EVENT: ArbitrationRequested, block:", event.Block, "tx:", event.TxHash)
+	c.logger.Println("[INF] EVENT: ArbitrationRequested, block:", event.Block, "tx:", event.TxHash, "txid:", event.Topics[1].String(), "arbiter:", addr)
 
 	if c.cfg.LoanNeedSignReqPath != "" {
-		path := c.cfg.LoanNeedSignReqPath + "/" + event.TxHash.String()
+		path := c.cfg.LoanNeedSignReqPath + "/" + event.Topics[1].String()
 		err = events.SaveContractEvent(path, event)
 		if err != nil {
 			g.Log().Error(c.ctx, "SaveContractEvent error", err)
 		}
 	}
 
-	g.Log().Noticef(c.ctx, "find btc tx need sign:%s ", event.TxHash.String())
+	g.Log().Noticef(c.ctx, "find btc tx need sign event:%s txid:%s", event.TxHash.String(), event.Topics[1])
 	return err
 }
 
 func (c *ArbitratorContract) parseTransferSignedEvent(event *events.ContractLogEvent) error {
 	var ev = make(map[string]interface{})
-	err := c.Loan_abi.UnpackIntoMap(ev, "ArbitrationResultSubmitted", event.EventData)
+	err := c.Loan_abi.UnpackIntoMap(ev, "ArbitrationSubmitted", event.EventData)
 	if err != nil {
 		g.Log().Error(c.ctx, "parseTransferSignedEvent UnpackIntoMap error", err)
 		return err
 	}
+	if len(event.Topics) != 4 {
+		g.Log().Error(c.ctx, "arbitrator topics error", ev, "\n event:", *event)
+		return errors.New("arbitrator is nil")
+	}
+	addr := event.Topics[3].String()
+	arbiter := common.HexToAddress(addr)
+
+	if _, ok := c.cfg.ESCArbiterAddresses[strings.ToLower(arbiter.String())]; !ok {
+		g.Log().Debug(c.ctx, "find ArbitrationSubmitted event, but not mine")
+		return nil
+	}
+
 	if c.cfg.LoanSignedEventPath != "" {
 		path := c.cfg.LoanSignedEventPath + "/" + event.TxHash.String()
 		err = events.SaveContractEvent(path, event)
@@ -223,7 +240,15 @@ func (c *ArbitratorContract) parseTransferSignedEvent(event *events.ContractLogE
 			g.Log().Error(c.ctx, "SaveContractEvent error", err)
 		}
 	}
-	g.Log().Noticef(c.ctx, "find btc tx signed:%s ", event.TxHash.String())
+	txId := event.Topics[1].String()
+	c.logger.Println("[INF] EVENT: ArbitrationSubmitted, block:", event.Block, "tx:", event.TxHash, "txid:", txId, "arbiter:", arbiter)
+	// try to remove it from req path
+	path := c.cfg.LoanNeedSignReqPath + "/" + txId
+	err = events.RemoveContractEvent(path)
+	if err != nil {
+		g.Log().Error(c.ctx, "RemoveContractEvent error", err)
+	}
+	g.Log().Noticef(c.ctx, "find btc tx signed:%s txid:%s", event.TxHash.String(), txId)
 	return err
 }
 

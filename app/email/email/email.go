@@ -13,6 +13,7 @@ import (
 	"os"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/btcsuite/btcd/btcec/v2"
@@ -99,7 +100,6 @@ func (e *Email) sendEmail() error {
 			logEvt, err := e.decodeLogEvtByFileContent(fileContent)
 			if err != nil {
 				g.Log().Error(e.ctx, "decodeLogEvtByFileContent error", err)
-				os.Remove(filePath)
 				e.logger.Println("[ERR] unpack event into map failed, file:", filePath)
 				continue
 			}
@@ -107,7 +107,6 @@ func (e *Email) sendEmail() error {
 			err = e.escNode.Loan_abi.UnpackIntoMap(ev, "ArbitrationRequested", logEvt.EventData)
 			if err != nil {
 				g.Log().Error(e.ctx, "UnpackIntoMap error", err)
-				os.Remove(filePath)
 				e.logger.Println("[ERR] unpack event into map failed, file:", filePath)
 				continue
 			}
@@ -124,8 +123,6 @@ func (e *Email) sendEmail() error {
 				QueryId: queryId.String(),
 			}
 			eventsMap[arbitratorAddress.String()] = append(eventsMap[arbitratorAddress.String()], blockId)
-			os.Remove(filePath)
-			g.Log().Info(e.ctx, "remove file", filePath)
 		}
 
 		g.Log().Info(e.ctx, "eventsMap", eventsMap)
@@ -254,7 +251,7 @@ func newESCNode(ctx context.Context, config *config.Config, logger *log.Logger) 
 
 	arbiterAddress := make(map[string]struct{})
 	for _, addr := range config.ArbiterAddresses {
-		arbiterAddress[addr] = struct{}{}
+		arbiterAddress[strings.ToLower(addr)] = struct{}{}
 	}
 	cfg := &contract.Config{
 		Http: config.Http,

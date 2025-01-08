@@ -9,5 +9,5 @@ import (
 var (
 	ArbitrationRequested = crypto.Keccak256Hash([]byte("ArbitrationRequested(bytes32,address,address,bytes,bytes,address)"))
 
-	ArbitrationResultSubmitted = crypto.Keccak256Hash([]byte("ArbitrationResultSubmitted(bytes,bytes32)"))
+	ArbitrationSubmitted = crypto.Keccak256Hash([]byte("ArbitrationSubmitted(bytes32,address,address,bytes)"))
 )
