@@ -12,14 +12,10 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/btcsuite/btcd/btcec/v2/ecdsa"
-	"github.com/btcsuite/btcd/btcutil"
-	"github.com/btcsuite/btcd/chaincfg"
-	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcd/wire"
 	"github.com/ethereum/go-ethereum/common"
 	_ "github.com/gogf/gf/contrib/drivers/pgsql/v2"
@@ -131,10 +127,10 @@ func (v *Arbiter) listenESCContract() {
 func (v *Arbiter) processArbiterSig() {
 	g.Log().Info(v.ctx, "processArbiterSignature start")
 
-	var netWorkParams = chaincfg.MainNetParams
-	if strings.ToLower(v.config.Network) == "testnet" {
-		netWorkParams = chaincfg.TestNet3Params
-	}
+	// var netWorkParams = chaincfg.MainNetParams
+	// if strings.ToLower(v.config.Network) == "testnet" {
+	// 	netWorkParams = chaincfg.TestNet3Params
+	// }
 
 	for {
 		// get all deploy file
@@ -180,72 +176,75 @@ func (v *Arbiter) processArbiterSig() {
 			g.Log().Info(v.ctx, "arbitratorAddress", arbitratorAddress)
 
 			// sign btc tx
-			tx, err := decodeTx(rawData)
-			if err != nil {
-				g.Log().Error(v.ctx, "decodeTx error", err, "rawData:", rawData)
-				v.moveToDirectory(filePath, v.config.LoanNeedSignFailedPath+"/"+file.Name()+".decodeRawDataFailed")
-				v.logger.Println("[ERR]  SIGN: decode event failed, block:", logEvt.Block, "tx:", logEvt.TxHash)
-				continue
-			}
-			script1Hash := sha256.Sum256(script)
-			wsh, err := btcutil.NewAddressWitnessScriptHash(script1Hash[:], &netWorkParams)
-			if err != nil {
-				g.Log().Error(v.ctx, "NewAddressWitnessScriptHash err:", err)
-				v.moveToDirectory(filePath, v.config.LoanNeedSignFailedPath+"/"+file.Name()+".newAddressWitnessScriptHashFailed")
-				v.logger.Println("[ERR]  SIGN: new addr witness sh failed, block:", logEvt.Block, "tx:", logEvt.TxHash)
-				continue
-			}
-			payAddress, err := btcutil.DecodeAddress(wsh.EncodeAddress(), &netWorkParams)
-			if err != nil {
-				g.Log().Error(v.ctx, "DecodeAddress err:", err)
-				v.moveToDirectory(filePath, v.config.LoanNeedSignFailedPath+"/"+file.Name()+".DecodeAddressFailed")
-				v.logger.Println("[ERR]  SIGN: decode address failed, block:", logEvt.Block, "tx:", logEvt.TxHash)
-				continue
-			}
-			g.Log().Info(v.ctx, "payAddress", payAddress.String())
-			p2wsh, err := txscript.PayToAddrScript(payAddress)
-			if err != nil {
-				g.Log().Error(v.ctx, "PayToAddrScript err:", err)
-				v.moveToDirectory(filePath, v.config.LoanNeedSignFailedPath+"/"+file.Name()+".PayToAddrScriptFailed")
-				v.logger.Println("[ERR]  SIGN: get ptaddr script failed, block:", logEvt.Block, "tx:", logEvt.TxHash)
-				continue
-			}
+			// tx, err := decodeTx(rawData)
+			// if err != nil {
+			// 	g.Log().Error(v.ctx, "decodeTx error", err, "rawData:", rawData)
+			// 	v.moveToDirectory(filePath, v.config.LoanNeedSignFailedPath+"/"+file.Name()+".decodeRawDataFailed")
+			// 	v.logger.Println("[ERR]  SIGN: decode event failed, block:", logEvt.Block, "tx:", logEvt.TxHash)
+			// 	continue
+			// }
+			// script1Hash := sha256.Sum256(script)
+			// wsh, err := btcutil.NewAddressWitnessScriptHash(script1Hash[:], &netWorkParams)
+			// if err != nil {
+			// 	g.Log().Error(v.ctx, "NewAddressWitnessScriptHash err:", err)
+			// 	v.moveToDirectory(filePath, v.config.LoanNeedSignFailedPath+"/"+file.Name()+".newAddressWitnessScriptHashFailed")
+			// 	v.logger.Println("[ERR]  SIGN: new addr witness sh failed, block:", logEvt.Block, "tx:", logEvt.TxHash)
+			// 	continue
+			// }
+			// payAddress, err := btcutil.DecodeAddress(wsh.EncodeAddress(), &netWorkParams)
+			// if err != nil {
+			// 	g.Log().Error(v.ctx, "DecodeAddress err:", err)
+			// 	v.moveToDirectory(filePath, v.config.LoanNeedSignFailedPath+"/"+file.Name()+".DecodeAddressFailed")
+			// 	v.logger.Println("[ERR]  SIGN: decode address failed, block:", logEvt.Block, "tx:", logEvt.TxHash)
+			// 	continue
+			// }
+			// g.Log().Info(v.ctx, "payAddress", payAddress.String())
+			// p2wsh, err := txscript.PayToAddrScript(payAddress)
+			// if err != nil {
+			// 	g.Log().Error(v.ctx, "PayToAddrScript err:", err)
+			// 	v.moveToDirectory(filePath, v.config.LoanNeedSignFailedPath+"/"+file.Name()+".PayToAddrScriptFailed")
+			// 	v.logger.Println("[ERR]  SIGN: get ptaddr script failed, block:", logEvt.Block, "tx:", logEvt.TxHash)
+			// 	continue
+			// }
 
-			// get preOutput by tx.Inputs(idx)
-			// only one input
-			idx := 0
-			input := tx.TxIn[idx]
-			g.Log().Info(v.ctx, "input.PreviousOutPoint.Hash", input.PreviousOutPoint.Hash.String())
-			preTx, err := v.mempoolAPI.GetRawTransaction(input.PreviousOutPoint.Hash.String())
-			if err != nil {
-				g.Log().Error(v.ctx, "GetRawTransaction error", err)
-				v.moveToDirectory(filePath, v.config.LoanNeedSignFailedPath+"/"+file.Name()+".GetRawTransactionFailed")
-				v.logger.Println("[ERR]  SIGN: get raw tx failed, block:", logEvt.Block, "tx:", logEvt.TxHash)
-				continue
-			}
+			// // get preOutput by tx.Inputs(idx)
+			// // only one input
+			// idx := 0
+			// input := tx.TxIn[idx]
+			// g.Log().Info(v.ctx, "input.PreviousOutPoint.Hash", input.PreviousOutPoint.Hash.String())
+			// preTx, err := v.mempoolAPI.GetRawTransaction(input.PreviousOutPoint.Hash.String())
+			// if err != nil {
+			// 	g.Log().Error(v.ctx, "GetRawTransaction error", err)
+			// 	v.moveToDirectory(filePath, v.config.LoanNeedSignFailedPath+"/"+file.Name()+".GetRawTransactionFailed")
+			// 	v.logger.Println("[ERR]  SIGN: get raw tx failed, block:", logEvt.Block, "tx:", logEvt.TxHash)
+			// 	continue
+			// }
 
-			preAmount := int64(preTx.Vout[input.PreviousOutPoint.Index].Value)
-			prevFetcher := txscript.NewCannedPrevOutputFetcher(
-				p2wsh, preAmount,
-			)
-			sigHashes := txscript.NewTxSigHashes(tx, prevFetcher)
-			sigHash, err := txscript.CalcWitnessSigHash(script, sigHashes, txscript.SigHashAll, tx, idx, preAmount)
-			if err != nil {
-				g.Log().Error(v.ctx, "CalcWitnessSigHash error", err)
-				v.moveToDirectory(filePath, v.config.LoanNeedSignFailedPath+"/"+file.Name()+".CalcWitnessSigHashFailed")
-				v.logger.Println("[ERR]  SIGN: calculate sigHash failed, block:", logEvt.Block, "tx:", logEvt.TxHash)
-				continue
-			}
-			var sigDataHash [32]byte
-			copy(sigDataHash[:], sigHash)
-			g.Log().Info(v.ctx, "sigHash", hex.EncodeToString(sigDataHash[:]))
-			g.Log().Info(v.ctx, "script", hex.EncodeToString(script))
+			// preAmount := int64(preTx.Vout[input.PreviousOutPoint.Index].Value)
+			// prevFetcher := txscript.NewCannedPrevOutputFetcher(
+			// 	p2wsh, preAmount,
+			// )
+			// sigHashes := txscript.NewTxSigHashes(tx, prevFetcher)
+			// sigHash, err := txscript.CalcWitnessSigHash(script, sigHashes, txscript.SigHashAll, tx, idx, preAmount)
+			// if err != nil {
+			// 	g.Log().Error(v.ctx, "CalcWitnessSigHash error", err)
+			// 	v.moveToDirectory(filePath, v.config.LoanNeedSignFailedPath+"/"+file.Name()+".CalcWitnessSigHashFailed")
+			// 	v.logger.Println("[ERR]  SIGN: calculate sigHash failed, block:", logEvt.Block, "tx:", logEvt.TxHash)
+			// 	continue
+			// }
+			// var sigDataHash [32]byte
+			// copy(sigDataHash[:], sigHash)
+			// g.Log().Info(v.ctx, "sigHash", hex.EncodeToString(sigDataHash[:]))
+			// g.Log().Info(v.ctx, "script", hex.EncodeToString(script))
+
+			first := sha256.Sum256(rawData)
+			sigHash := sha256.Sum256(first[:])
 
 			// ecdsa sign
 			priKeyBytes, _ := hex.DecodeString(v.account.PrivateKey)
 			priKey, _ := btcec.PrivKeyFromBytes(priKeyBytes)
-			signatureArbiter := ecdsa.Sign(priKey, sigHash)
-			ok := signatureArbiter.Verify(sigDataHash[:], priKey.PubKey())
+			signatureArbiter := ecdsa.Sign(priKey, sigHash[:])
+			ok := signatureArbiter.Verify(sigHash[:], priKey.PubKey())
 			if !ok {
 				g.Log().Error(v.ctx, "self ecdsa sign verify failed")
 				v.moveToDirectory(filePath, v.config.LoanNeedSignFailedPath+"/"+file.Name()+".SigVerifyFailed")
