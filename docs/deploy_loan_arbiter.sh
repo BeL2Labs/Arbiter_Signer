@@ -76,7 +76,7 @@ deploy_arbiter()
 	cd $SCRIPT_PATH
 
 	#prepare config.yaml
-	wget https://download.bel2.org/loan-arbiter/loan-arbiter-v0.0.1/conf.tgz
+	wget -O conf.tgz https://download.bel2.org/loan-arbiter/loan-arbiter-v0.0.1/conf.tgz
 	tar xf conf.tgz
 	#mv conf/config.yaml .
   sed -i "s/0x0262aB0ED65373cC855C34529fDdeAa0e686D913/$1/g" config.yaml
@@ -90,7 +90,7 @@ deploy_arbiter()
   if [ "$(uname -m)" == "armv6l" ] || [ "$(uname -m)" == "armv7l" ] || [ "$(uname -m)" == "aarch64" ]; then
     echo "The current system architecture is ARM"
     echo_info "Downloading loan arbiter..."
-    wget https://download.bel2.org/loan-arbiter/loan-arbiter-v0.0.1/loan-arbiter-linux-arm64.tgz
+    wget -O loan-arbiter-linux-arm64.tgz https://download.bel2.org/loan-arbiter/loan-arbiter-v0.0.1/loan-arbiter-linux-arm64.tgz
     tar xf loan-arbiter-linux-arm64.tgz
     echo_info "Replacing arbiter.."
     cp -v loan-arbiter-linux-arm64/arbiter ~/loan_arbiter/
@@ -101,7 +101,7 @@ deploy_arbiter()
   else
     echo "The current system architecture is x86"
     echo_info "Downloading loan arbiter..."
-    wget https://download.bel2.org/loan-arbiter/loan-arbiter-v0.0.1/loan-arbiter-linux-x86_64.tgz
+    wget -O loan-arbiter-linux-x86_64.tgz https://download.bel2.org/loan-arbiter/loan-arbiter-v0.0.1/loan-arbiter-linux-x86_64.tgz
     tar xf loan-arbiter-linux-x86_64.tgz
     echo_info "Replacing arbiter.."
     cp -v loan-arbiter-linux-x86_64/arbiter ~/loan_arbiter/

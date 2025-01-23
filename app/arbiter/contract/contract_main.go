@@ -30,34 +30,34 @@ type ArbitratorContract struct {
 	chan_interrupt      chan struct{}
 	Loan_abi            abi.ABI
 	Arbiter_manager_abi abi.ABI
+	Arbiter_config_abi  abi.ABI
 
 	loanContract           *common.Address
 	arbiterManagerContract *common.Address
+	configManagerContract  *common.Address
 	cfg                    *config.Config
 
 	logger *log.Logger
 }
 
 // ArbitratorStatus should be defined according to the possible statuses you have.
-type ArbitratorStatus int // Adjust this type based on actual values in Solidity
 type ArbitratorInfo struct {
-	Arbitrator            string           // Arbitrator Ethereum address
-	CurrentFeeRate        *big.Int         // Current fee rate
-	PendingFeeRate        *big.Int         // Pending new fee rate
-	Status                ArbitratorStatus // Arbitrator status
-	ActiveTransactionID   [32]byte         // Current transaction ID (bytes32)
-	EthAmount             *big.Int         // ETH stake amount
-	Erc20Token            string           // ERC20 token address
-	NftContract           string           // NFT contract address
-	NftTokenIds           []uint64         // NFT token IDs
-	Operator              string           // Operator address
-	OperatorBtcPubKey     []byte           // Bitcoin public key
-	OperatorBtcAddress    string           // Bitcoin address
-	Deadline              time.Time        // Last arbitration time , deadline
-	RevenueBtcPubKey      []byte           // Bitcoin public key for receiving arbitrator earnings
-	RevenueBtcAddress     string           // Bitcoin address for receiving arbitrator earnings
-	RevenueETHAddress     string           // ETH address for receiving arbitrator earnings
-	LastSubmittedWorkTime time.Time        // Last submitted work time
+	Arbitrator            string   // Arbitrator Ethereum address
+	Paused                bool     // Paused
+	CurrentFeeRate        *big.Int // Current fee rate
+	ActiveTransactionID   [32]byte // Current transaction ID (bytes32)
+	EthAmount             *big.Int // ETH stake amount
+	Erc20Token            string   // ERC20 token address
+	NftContract           string   // NFT contract address
+	NftTokenIds           []uint64 // NFT token IDs
+	Operator              string   // Operator address
+	OperatorBtcPubKey     []byte   // Bitcoin public key
+	OperatorBtcAddress    string   // Bitcoin address
+	Deadline              *big.Int // Last arbitration time , deadline
+	RevenueBtcPubKey      []byte   // Bitcoin public key for receiving arbitrator earnings
+	RevenueBtcAddress     string   // Bitcoin address for receiving arbitrator earnings
+	RevenueETHAddress     string   // ETH address for receiving arbitrator earnings
+	LastSubmittedWorkTime *big.Int // Last submitted work time
 }
 
 func New(ctx context.Context, cfg *config.Config, privateKey string, logger *log.Logger) (*ArbitratorContract, error) {
@@ -67,6 +67,7 @@ func New(ctx context.Context, cfg *config.Config, privateKey string, logger *log
 	}
 	loanAddress := common.HexToAddress(cfg.ESCArbiterContractAddress)
 	arbiterManagerAddress := common.HexToAddress(cfg.ESCArbiterManagerContractAddress)
+	configManagerAddress := common.HexToAddress(cfg.ESCConfigManagerContractAddress)
 	eventChan := make(chan *events.ContractLogEvent, 3)
 	chan_interrupt := make(chan struct{})
 	listener, err := NewListener(ctx, client, loanAddress, eventChan)
@@ -79,6 +80,10 @@ func New(ctx context.Context, cfg *config.Config, privateKey string, logger *log
 		return nil, err
 	}
 	arbiterManagerABI, err := abi.JSON(strings.NewReader(contract_abi.ArbiterManagerABI))
+	if err != nil {
+		return nil, err
+	}
+	arbiterConfigABI, err := abi.JSON(strings.NewReader(contract_abi.ArbiterConfigManagerABI))
 	if err != nil {
 		return nil, err
 	}
@@ -95,8 +100,10 @@ func New(ctx context.Context, cfg *config.Config, privateKey string, logger *log
 		chan_interrupt:         chan_interrupt,
 		Loan_abi:               loanABI,
 		Arbiter_manager_abi:    arbiterManagerABI,
+		Arbiter_config_abi:     arbiterConfigABI,
 		loanContract:           &loanAddress,
 		arbiterManagerContract: &arbiterManagerAddress,
+		configManagerContract:  &configManagerAddress,
 		cfg:                    cfg,
 		logger:                 logger,
 	}
@@ -235,4 +242,43 @@ func (c *ArbitratorContract) getArbiterOperatorAddress(arbiter common.Address) (
 	json.Unmarshal(data, &info)
 
 	return common.HexToAddress(info.Operator), nil
+}
+
+func (c *ArbitratorContract) GetArbiterBTCAddress(arbiter common.Address) (string, error) {
+	input, err := c.Arbiter_manager_abi.Pack("getArbitratorInfo", arbiter)
+	if err != nil {
+		return "", err
+	}
+	// use c.arbiterManagerContract to call get getArbitratorInfo operator address
+	msg := ethereum.CallMsg{From: common.Address{}, To: c.arbiterManagerContract, Data: input}
+	result, err := c.submitter.CallContract(context.TODO(), msg, nil)
+	if err != nil {
+		return "", err
+	}
+	ev, err := c.Arbiter_manager_abi.Unpack("getArbitratorInfo", result)
+	if err != nil || len(ev) == 0 {
+		g.Log().Error(c.ctx, "parse ArbitratorInfo UnpackIntoMap error", err)
+		return "", err
+	}
+	info := ArbitratorInfo{}
+	data, err := json.Marshal(ev[0])
+	if err != nil {
+		return "", err
+	}
+	json.Unmarshal(data, &info)
+
+	return info.RevenueBtcAddress, nil
+}
+
+func (c *ArbitratorContract) GetArbitrationBTCFeeRate() (*big.Int, error) {
+	input, err := c.Arbiter_config_abi.Pack("getArbitrationBTCFeeRate")
+	if err != nil {
+		return nil, err
+	}
+	msg := ethereum.CallMsg{From: common.Address{}, To: c.configManagerContract, Data: input}
+	result, err := c.submitter.CallContract(context.TODO(), msg, nil)
+	if err != nil {
+		return nil, err
+	}
+	return big.NewInt(0).SetBytes(result), nil
 }

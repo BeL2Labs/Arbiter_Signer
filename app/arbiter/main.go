@@ -15,8 +15,8 @@ import (
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/os/gctx"
 
-	"github.com/BeL2Labs/Arbiter_Signer/app/arbiter/config"
 	"github.com/BeL2Labs/Arbiter_Signer/app/arbiter/arbiter"
+	"github.com/BeL2Labs/Arbiter_Signer/app/arbiter/config"
 )
 
 func main() {
@@ -82,6 +82,11 @@ func initConfig(ctx context.Context) *config.Config {
 		g.Log().Error(ctx, "get escArbiterManagerAddress config err:", err)
 		os.Exit(1)
 	}
+	escConfigManagerAddress, err := g.Cfg().Get(ctx, "arbiter.escConfigManagerContractAddress")
+	if err != nil {
+		g.Log().Error(ctx, "get escConfigManagerAddress config err:", err)
+		os.Exit(1)
+	}
 	escArbiterAddress, err := g.Cfg().Get(ctx, "arbiter.escArbiterAddress")
 	if err != nil {
 		g.Log().Error(ctx, "get escArbiterAddress config err:", err)
@@ -128,6 +133,7 @@ func initConfig(ctx context.Context) *config.Config {
 		ESCStartHeight:                   escStartHeight.Uint64(),
 		ESCArbiterContractAddress:        escArbiterContractAddress.String(),
 		ESCArbiterManagerContractAddress: escArbiterManagerAddress.String(),
+		ESCConfigManagerContractAddress:  escConfigManagerAddress.String(),
 		ESCArbiterAddress:                escArbiterAddress.String(),
 
 		DataDir:            dataPath,

@@ -12,6 +12,7 @@ type Config struct {
 	ESCStartHeight                   uint64
 	ESCArbiterContractAddress        string
 	ESCArbiterManagerContractAddress string
+	ESCConfigManagerContractAddress  string
 	ESCArbiterAddress                string
 
 	DataDir            string

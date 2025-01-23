@@ -36,23 +36,24 @@ func NewListener(ctx context.Context, client *CrossClient,
 }
 
 func (c *ContractListener) Start(startHeight uint64) (uint64, error) {
+	confirmBlocksCount := uint64(10)
 	endBlock, err := c.queryClient.GetLatestHeight()
 	if err != nil {
 		g.Log().Warning(c.ctx, "GetLatestHeight failed", err)
 		return math.MaxUint64, err
 	}
-	if startHeight > endBlock-2 {
+	if startHeight > endBlock-confirmBlocksCount {
 		return math.MaxUint64, errors.New("start block must be less than end block")
 	}
 
 	distance := uint64(10000)
 	toBlock := startHeight
 	loanQuery := c.queryClient.BuildQuery(c.loanContract, c.listeneTopics, nil, nil)
-	for i := startHeight; i <= endBlock-2; i += distance {
+	for i := startHeight; i <= endBlock-confirmBlocksCount; i += distance {
 		if i+distance < endBlock {
 			toBlock = i + distance
 		} else {
-			toBlock = endBlock - 2
+			toBlock = endBlock - confirmBlocksCount
 		}
 		loanQuery.FromBlock = big.NewInt(0).SetUint64(i)
 		loanQuery.ToBlock = big.NewInt(0).SetUint64(toBlock)
