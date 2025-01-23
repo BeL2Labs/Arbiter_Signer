@@ -72,23 +72,27 @@ $ make
 
 ### 3. prepare keystore to keyFilePath
 
-1. create **btcKey.json** **escKey.json** and put it into **keyFilePath**
+1. create **btcKey** **escKey** and put it into **keyFilePath**
 btcKey is used to sign request_arbitration_btc_tx
 escKey is used to submit arbitration signature to esc arbiter contract, gas fee(esc ELA) is needed
  
 2. keysotre file need to set hex encoded private key
 
-   btcKey.json
-      ```json
-      {
-          "privKey": "[HEX_PRIV_KEY]"
-      }
+   use [encrypt.sh](https://github.com/BeL2Labs/Arbiter_Signer/blob/main/docs/encrypt.sh) to create btc keystore:
+      ```shell
+      ~ chmod a+x encrypt.sh
+      ~ ./encrypt.sh
+      ~ > YOUR_HEX_PRIV_KEY
+      ~ > YOUR_PASSWORD
+      ~ > btcKey
       ```
-   escKey.json
-      ```json
-      {
-          "privKey": "[HEX_PRIV_KEY]"
-      }
+    use [encrypt.sh](https://github.com/BeL2Labs/Arbiter_Signer/blob/main/docs/encrypt.sh) to create esc keystore:
+      ```shell
+      ~ chmod a+x encrypt.sh
+      ~ ./encrypt.sh
+      ~ > YOUR_HEX_PRIV_KEY
+      ~ > YOUR_PASSWORD
+      ~ > escKey
       ```
 
 ### 4. run arbiter

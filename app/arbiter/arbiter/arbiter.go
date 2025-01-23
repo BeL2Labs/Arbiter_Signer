@@ -8,7 +8,6 @@ import (
 	"crypto/sha256"
 	"encoding/gob"
 	"encoding/hex"
-	"encoding/json"
 	"log"
 	"os"
 	"path/filepath"
@@ -30,6 +29,7 @@ import (
 	"github.com/BeL2Labs/Arbiter_Signer/app/arbiter/config"
 	"github.com/BeL2Labs/Arbiter_Signer/app/arbiter/contract"
 	"github.com/BeL2Labs/Arbiter_Signer/app/arbiter/contract/events"
+	"github.com/BeL2Labs/Arbiter_Signer/app/arbiter/crypto"
 )
 
 const DELAY_BLOCK uint64 = 3
@@ -49,25 +49,21 @@ type Arbiter struct {
 	logger *log.Logger
 }
 
-func NewArbiter(ctx context.Context, config *config.Config) *Arbiter {
-	escData, err := os.ReadFile(config.EscKeyFilePath)
+func NewArbiter(ctx context.Context, config *config.Config, password string) *Arbiter {
+	escPrivKey, err := crypto.GetKeyFromKeystore(config.EscKeyFilePath, password)
 	if err != nil {
 		g.Log().Fatal(ctx, "get esc keyfile error", err, " keystore path ", config.EscKeyFilePath)
 	}
-	var escAccount account
-	err = json.Unmarshal(escData, &escAccount)
-	if err != nil {
-		g.Log().Fatal(ctx, "Unmarshal keyfile error", err, " content ", string(escData))
+	escAccount := account{
+		PrivateKey: escPrivKey,
 	}
 
-	arbiterData, err := os.ReadFile(config.ArbiterKeyFilePath)
+	arbiterPrivKey, err := crypto.GetKeyFromKeystore(config.ArbiterKeyFilePath, password)
 	if err != nil {
 		g.Log().Fatal(ctx, "get arbiter keyfile error", err, " keystore path ", config.ArbiterKeyFilePath)
 	}
-	var arbiterAccount account
-	err = json.Unmarshal(arbiterData, &arbiterAccount)
-	if err != nil {
-		g.Log().Fatal(ctx, "Unmarshal keyfile error", err, " content ", string(arbiterData))
+	arbiterAccount := account{
+		PrivateKey: arbiterPrivKey,
 	}
 
 	err = createDir(config)
@@ -112,17 +108,6 @@ func (v *Arbiter) listenESCContract() {
 	startHeight, _ := events.GetCurrentBlock(v.config.DataDir)
 	if v.config.ESCStartHeight > startHeight {
 		startHeight = v.config.ESCStartHeight
-	}
-
-	keyfile := v.config.EscKeyFilePath
-	data, err := os.ReadFile(keyfile)
-	if err != nil {
-		g.Log().Fatal(v.ctx, "get keyfile error", err, " private key path ", keyfile)
-	}
-	var a account
-	err = json.Unmarshal(data, &a)
-	if err != nil {
-		g.Log().Fatal(v.ctx, "Unmarshal keyfile error", err, " content ", string(data))
 	}
 
 	v.escNode.Start(startHeight)

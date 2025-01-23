@@ -81,10 +81,10 @@ deploy_arbiter()
 	#mv conf/config.yaml .
   sed -i "s/0x0262aB0ED65373cC855C34529fDdeAa0e686D913/$1/g" config.yaml
 
-	#prepare key json
-	mv btcKey.json  escKey.json keys/
-	sed -i "s/hex_encoded_private_key/$2/g" keys/btcKey.json
-	sed -i "s/hex_encoded_private_key/$3/g" keys/escKey.json
+	#prepare keystore
+  openssl enc -aes-256-cbc -salt -in <(echo -n $2) -out "btcKey" -pass pass:$4
+  openssl enc -aes-256-cbc -salt -in <(echo -n $3) -out "escKey" -pass pass:$4
+	mv btcKey escKey keys/
 
 	#prepare arbiter
   if [ "$(uname -m)" == "armv6l" ] || [ "$(uname -m)" == "armv7l" ] || [ "$(uname -m)" == "aarch64" ]; then
@@ -95,7 +95,7 @@ deploy_arbiter()
     echo_info "Replacing arbiter.."
     cp -v loan-arbiter-linux-arm64/arbiter ~/loan_arbiter/
     echo_info "Starting arbtier..."
-    ./arbiter --gf.gcfg.file=config.yaml  > $SCRIPT_PATH/data/logs/arbiter.log 2>&1 &
+    ./arbiter --gf.gcfg.file=config.yaml -p $4  > $SCRIPT_PATH/data/logs/arbiter.log 2>&1 &
 
     #rm -f loan-arbiter-linux-arm64.tgz conf.tgz
   else
@@ -106,7 +106,7 @@ deploy_arbiter()
     echo_info "Replacing arbiter.."
     cp -v loan-arbiter-linux-x86_64/arbiter ~/loan_arbiter/
     echo_info "Starting arbtier..."
-    ./arbiter --gf.gcfg.file=config.yaml > $SCRIPT_PATH/data/logs/arbiter.log 2>&1 &
+    ./arbiter --gf.gcfg.file=config.yaml -p $4 > $SCRIPT_PATH/data/logs/arbiter.log 2>&1 &
 
     #rm -f loan-arbiter-linux-x86_64.tgz conf.tgz
   fi
@@ -116,4 +116,4 @@ deploy_arbiter()
 }
 
 SCRIPT_PATH=~/loan_arbiter
-deploy_arbiter $1 $2 $3
+deploy_arbiter $1 $2 $3 $4

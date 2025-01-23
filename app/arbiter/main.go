@@ -4,6 +4,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -20,6 +21,19 @@ import (
 )
 
 func main() {
+	passwordPtr := flag.String("p", "", "Specify the password")
+	flag.Parse()
+	var password string
+	if *passwordPtr == "" {
+		fmt.Print("please input key password: ")
+		_, err := fmt.Scanln(&password)
+		if err != nil {
+			fmt.Println("read password error:", err)
+			os.Exit(1)
+		}
+	} else {
+		password = *passwordPtr
+	}
 
 	if len(os.Args) > 1 {
 		operation := os.Args[1]
@@ -41,7 +55,7 @@ func main() {
 	wg.Add(1)
 	// start arbiter
 	g.Log().Info(ctx, "Starting arbiter...")
-	arb := arbiter.NewArbiter(ctx, initConfig(ctx))
+	arb := arbiter.NewArbiter(ctx, initConfig(ctx), password)
 	arb.Start()
 	wg.Wait()
 }
@@ -116,8 +130,8 @@ func initConfig(ctx context.Context) *config.Config {
 	g.Log().Info(ctx, "keyFilePath:", keyFilePath)
 
 	// if want to submit to ESC contract successfully, need to use esc ela as gas.
-	escKeyFilePath := gfile.Join(keyFilePath, "escKey.json")
-	arbiterKeyFilePath := gfile.Join(keyFilePath, "btcKey.json")
+	escKeyFilePath := gfile.Join(keyFilePath, "escKey")
+	arbiterKeyFilePath := gfile.Join(keyFilePath, "btcKey")
 	logPath := gfile.Join(dataPath, "logs/")
 	loanPath := gfile.Join(dataPath, "loan/")
 	loanNeedSignReqPath := gfile.Join(loanPath, "request/")
