@@ -82,9 +82,11 @@ deploy_arbiter()
   sed -i "s/0x0262aB0ED65373cC855C34529fDdeAa0e686D913/$1/g" config.yaml
 
 	#prepare keystore
-  openssl enc -aes-256-cbc -salt -in <(echo -n $2) -out "btcKey" -pass pass:$4
-  openssl enc -aes-256-cbc -salt -in <(echo -n $3) -out "escKey" -pass pass:$4
-	mv btcKey escKey keys/
+  # Generate BTC keystore
+  keystore-generator -c btc -s $2 -p $4 -o btcKey
+  # Generate ESC keystore
+  keystore-generator -c eth -s $3 -p $4 -o escKey
+  mv btcKey escKey keys/
 
 	#prepare arbiter
   if [ "$(uname -m)" == "armv6l" ] || [ "$(uname -m)" == "armv7l" ] || [ "$(uname -m)" == "aarch64" ]; then

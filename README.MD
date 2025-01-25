@@ -68,32 +68,28 @@ $ make
      keyFilePath: "~/loan_arbiter/keys"
    ```
 
-
-
 ### 3. prepare keystore to keyFilePath
 
 1. create **btcKey** **escKey** and put it into **keyFilePath**
 btcKey is used to sign request_arbitration_btc_tx
 escKey is used to submit arbitration signature to esc arbiter contract, gas fee(esc ELA) is needed
  
-2. keysotre file need to set hex encoded private key
+2. Use keystore-generator tool to create keystore files:
 
-   use [encrypt.sh](https://github.com/BeL2Labs/Arbiter_Signer/blob/main/docs/encrypt.sh) to create btc keystore:
-      ```shell
-      ~ chmod a+x encrypt.sh
-      ~ ./encrypt.sh
-      ~ > YOUR_HEX_PRIV_KEY
-      ~ > YOUR_PASSWORD
-      ~ > btcKey
-      ```
-    use [encrypt.sh](https://github.com/BeL2Labs/Arbiter_Signer/blob/main/docs/encrypt.sh) to create esc keystore:
-      ```shell
-      ~ chmod a+x encrypt.sh
-      ~ ./encrypt.sh
-      ~ > YOUR_HEX_PRIV_KEY
-      ~ > YOUR_PASSWORD
-      ~ > escKey
-      ```
+   Install keystore-generator:
+   ```shell
+   go install github.com/BeL2Labs/keystore-generator@latest
+   ```
+
+   Generate BTC keystore:
+   ```shell
+   keystore-generator -c btc -s YOUR_PRIVATE_KEY -p YOUR_PASSWORD -o btcKey
+   ```
+
+   Generate ESC keystore:
+   ```shell
+   keystore-generator -c eth -s YOUR_PRIVATE_KEY -p YOUR_PASSWORD -o escKey
+   ```
 
 ### 4. run arbiter
 
