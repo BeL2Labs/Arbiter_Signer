@@ -50,7 +50,7 @@ type Arbiter struct {
 }
 
 func NewArbiter(ctx context.Context, config *config.Config, password string) *Arbiter {
-	escPrivKey, err := crypto.GetKeyFromKeystore(config.EscKeyFilePath, password)
+	escPrivKey, err := crypto.GetEthKeyFromKeystore(config.EscKeyFilePath, password)
 	if err != nil {
 		g.Log().Fatal(ctx, "get esc keyfile error", err, " keystore path ", config.EscKeyFilePath)
 	}
@@ -58,7 +58,7 @@ func NewArbiter(ctx context.Context, config *config.Config, password string) *Ar
 		PrivateKey: escPrivKey,
 	}
 
-	arbiterPrivKey, err := crypto.GetKeyFromKeystore(config.ArbiterKeyFilePath, password)
+	arbiterPrivKey, err := crypto.GetBtcKeyFromKeystore(config.ArbiterKeyFilePath, password)
 	if err != nil {
 		g.Log().Fatal(ctx, "get arbiter keyfile error", err, " keystore path ", config.ArbiterKeyFilePath)
 	}
