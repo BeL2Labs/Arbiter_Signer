@@ -85,13 +85,12 @@ func GenerateETHKeystore(privateKeyHex string, password string, outputFile strin
 	}
 
 	if outputFile != "" {
-		newPath := fmt.Sprintf("%s", outputFile)
-		err := os.Rename(account.URL.Path, newPath)
+		err := os.Rename(account.URL.Path, outputFile)
 		if err != nil {
 			fmt.Println("Error: Failed to rename keystore file:", err)
 			os.Exit(1)
 		}
-		fmt.Println("Ethereum keystore created successfully at:", newPath)
+		fmt.Println("Ethereum keystore created successfully at:", outputFile)
 	} else {
 		fmt.Println("Ethereum keystore created successfully at:", account.URL.Path)
 	}

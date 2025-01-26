@@ -93,19 +93,14 @@ escKey is used to submit arbitration signature to esc arbiter contract, gas fee(
 
 ### 4. run arbiter
 
-run arbiter with go file
-```shell
-go run app/arbiter/main.go
-```
-
-run arbiter with default manifest file
+run arbiter
 ```shell
 ./arbiter
 ```
 
-run arbiter with custom manifest file
+run arbiter with go file
 ```shell
-./arbiter --gf.gcfg.file=config.yaml
+go run app/arbiter/main.go
 ```
 
 ## Automated Deployment

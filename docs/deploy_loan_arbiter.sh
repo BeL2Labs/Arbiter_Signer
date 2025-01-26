@@ -64,8 +64,8 @@ check_status()
 deploy_arbiter()
 {
 	echo_info $SCRIPT_PATH
-  if [ $# -ne 3 ]; then
-        echo "Need to use deploy_loan_arbiter.sh [your_arbiter_esc_address] [hex_encoded_btc_private_key] [hex_encoded_esc_private_key]"
+  if [ $# -ne 4 ]; then
+        echo "Need to use deploy_loan_arbiter.sh [your_arbiter_esc_address] [hex_encoded_btc_private_key] [hex_encoded_esc_private_key] [your_keystore_password]"
         exit 1
   fi
 
@@ -81,36 +81,41 @@ deploy_arbiter()
 	#mv conf/config.yaml .
   sed -i "s/0x0262aB0ED65373cC855C34529fDdeAa0e686D913/$1/g" config.yaml
 
-	#prepare keystore
-  # Generate BTC keystore
-  keystore-generator -c btc -s $2 -p $4 -o btcKey
-  # Generate ESC keystore
-  keystore-generator -c eth -s $3 -p $4 -o escKey
-  mv btcKey escKey keys/
-
 	#prepare arbiter
   if [ "$(uname -m)" == "armv6l" ] || [ "$(uname -m)" == "armv7l" ] || [ "$(uname -m)" == "aarch64" ]; then
     echo "The current system architecture is ARM"
     echo_info "Downloading loan arbiter..."
     wget -O loan-arbiter-linux-arm64.tgz https://download.bel2.org/loan-arbiter/loan-arbiter-v0.0.1/loan-arbiter-linux-arm64.tgz
     tar xf loan-arbiter-linux-arm64.tgz
+    #prepare keystore
+    mv loan-arbiter-linux-arm64/keystore-generator .
+    ./keystore-generator -c btc -s $2 -p $4 -o btcKey
+    ./keystore-generator -c eth -s $3 -p $4 -o escKey
+    mv btcKey escKey keys/
+    #prepare arbiter
     echo_info "Replacing arbiter.."
     cp -v loan-arbiter-linux-arm64/arbiter ~/loan_arbiter/
     echo_info "Starting arbtier..."
-    ./arbiter --gf.gcfg.file=config.yaml -p $4  > $SCRIPT_PATH/data/logs/arbiter.log 2>&1 &
+    ./arbiter -p $4  > $SCRIPT_PATH/data/logs/arbiter.log 2>&1 &
 
-    #rm -f loan-arbiter-linux-arm64.tgz conf.tgz
+    rm -f loan-arbiter-linux-arm64.tgz conf.tgz
   else
     echo "The current system architecture is x86"
     echo_info "Downloading loan arbiter..."
     wget -O loan-arbiter-linux-x86_64.tgz https://download.bel2.org/loan-arbiter/loan-arbiter-v0.0.1/loan-arbiter-linux-x86_64.tgz
     tar xf loan-arbiter-linux-x86_64.tgz
+    #prepare keystore
+    mv loan-arbiter-linux-x86_64/keystore-generator .
+    ./keystore-generator -c btc -s $2 -p $4 -o btcKey
+    ./keystore-generator -c eth -s $3 -p $4 -o escKey
+    mv btcKey escKey keys/
+    #prepare arbiter
     echo_info "Replacing arbiter.."
     cp -v loan-arbiter-linux-x86_64/arbiter ~/loan_arbiter/
     echo_info "Starting arbtier..."
-    ./arbiter --gf.gcfg.file=config.yaml -p $4 > $SCRIPT_PATH/data/logs/arbiter.log 2>&1 &
+    ./arbiter -p $4 > $SCRIPT_PATH/data/logs/arbiter.log 2>&1 &
 
-    #rm -f loan-arbiter-linux-x86_64.tgz conf.tgz
+    rm -f loan-arbiter-linux-x86_64.tgz conf.tgz
   fi
 
   check_status
