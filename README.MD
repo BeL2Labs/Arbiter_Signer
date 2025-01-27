@@ -76,11 +76,6 @@ escKey is used to submit arbitration signature to esc arbiter contract, gas fee(
  
 2. Use keystore-generator tool to create keystore files:
 
-   Install keystore-generator:
-   ```shell
-   go install github.com/BeL2Labs/keystore-generator@latest
-   ```
-
    Generate BTC keystore:
    ```shell
    keystore-generator -c btc -s YOUR_PRIVATE_KEY -p YOUR_PASSWORD -o btcKey
