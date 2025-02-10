@@ -6,4 +6,5 @@ RUN wget https://download.bel2.org/loan-arbiter/deploy_loan_arbiter.sh
 RUN chmod a+x deploy_loan_arbiter.sh
 RUN echo $ARBITER_ADDRESS  
 RUN echo $ARBITER_KEYPASS
-ENTRYPOINT ["/bin/bash", "-c", "./deploy_loan_arbiter.sh \"$ARBITER_ADDRESS\" \"$ARBITER_BTC_PRIVATE_KEY\" \"$ARBITER_ESC_PRIVATE_KEY\" \"$ARBITER_KEYPASS\"; tail -f /dev/null"]
+RUN echo $STAGING
+ENTRYPOINT ["/bin/bash", "-c", "./deploy_loan_arbiter.sh \"$ARBITER_ADDRESS\" \"$ARBITER_BTC_PRIVATE_KEY\" \"$ARBITER_ESC_PRIVATE_KEY\" \"$ARBITER_KEYPASS\" \"$STAGING\"; tail -f /dev/null"]

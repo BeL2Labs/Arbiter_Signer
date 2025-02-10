@@ -64,7 +64,7 @@ check_status()
 deploy_arbiter()
 {
 	echo_info $SCRIPT_PATH
-  if [ $# -ne 4 ]; then
+  if [ $# -lt 4 ]; then
         echo "Need to use deploy_loan_arbiter.sh [your_arbiter_esc_address] [hex_encoded_btc_private_key] [hex_encoded_esc_private_key] [your_keystore_password]"
         exit 1
   fi
@@ -76,7 +76,11 @@ deploy_arbiter()
 	cd $SCRIPT_PATH
 
 	#prepare config.yaml
-	wget -O conf.tgz https://download.bel2.org/loan-arbiter/loan-arbiter-v0.0.1/conf.tgz
+if [ "$5" == "true" ]; then
+    wget -O conf.tgz https://download.bel2.org/loan-arbiter/loan-arbiter-v0.0.1/conf_staging.tgz
+else
+    wget -O conf.tgz https://download.bel2.org/loan-arbiter/loan-arbiter-v0.0.1/conf_prod.tgz
+fi
 	tar xf conf.tgz
 	#mv conf/config.yaml .
   sed -i "s/0x0262aB0ED65373cC855C34529fDdeAa0e686D913/$1/g" config.yaml
@@ -123,4 +127,4 @@ deploy_arbiter()
 }
 
 SCRIPT_PATH=~/loan_arbiter
-deploy_arbiter $1 $2 $3 $4
+deploy_arbiter $1 $2 $3 $4 $5
