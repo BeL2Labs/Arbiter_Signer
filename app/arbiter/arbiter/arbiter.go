@@ -248,7 +248,7 @@ func (v *Arbiter) processArbiterSig() {
 			}
 
 			// get preOutput by tx.Inputs(idx)
-			idx := 1 - arbiterFeeVoutIndex
+			idx := 0
 			input := tx.TxIn[idx]
 			g.Log().Info(v.ctx, "input.PreviousOutPoint.Hash", input.PreviousOutPoint.Hash.String())
 			preTx, err := v.mempoolAPI.GetRawTransaction(input.PreviousOutPoint.Hash.String())
