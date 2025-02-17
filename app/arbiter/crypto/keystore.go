@@ -7,8 +7,10 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 
+	"github.com/btcsuite/btcd/btcutil"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 )
 
@@ -104,7 +106,22 @@ func GetBtcKeyFromKeystore(path, password string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return hex.EncodeToString(decryptedData), nil
+	hexPrivateKey, err := convertWIFToHex(string(decryptedData))
+	if err != nil {
+		return "", fmt.Errorf("failed to convert WIF to hex: %v", err)
+	}
+	return hexPrivateKey, nil
+}
+
+func convertWIFToHex(wif string) (string, error) {
+	decodedWIF, err := btcutil.DecodeWIF(wif)
+	if err != nil {
+		return "", err
+	}
+
+	privateKeyBytes := decodedWIF.PrivKey.Serialize()
+	hexPrivateKey := hex.EncodeToString(privateKeyBytes)
+	return hexPrivateKey, nil
 }
 
 // decryptBTCKeystore decrypts BTC keystore data using password

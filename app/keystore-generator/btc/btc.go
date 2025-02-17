@@ -6,11 +6,25 @@ import (
 	"crypto/cipher"
 	"crypto/rand"
 	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
 	"os"
+
+	"github.com/btcsuite/btcd/btcutil"
 )
+
+func convertWIFToHex(wif string) (string, error) {
+	decodedWIF, err := btcutil.DecodeWIF(wif)
+	if err != nil {
+		return "", err
+	}
+
+	privateKeyBytes := decodedWIF.PrivKey.Serialize()
+	hexPrivateKey := hex.EncodeToString(privateKeyBytes)
+	return hexPrivateKey, nil
+}
 
 func ParseKeystore(filePath string, password string) (string, error) {
 	data, err := os.ReadFile(filePath)
@@ -23,8 +37,11 @@ func ParseKeystore(filePath string, password string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to decrypt keystore: %v", err)
 	}
-
-	return string(decrypted), nil
+	hexPrivateKey, err := convertWIFToHex(string(decrypted))
+	if err != nil {
+		return "", fmt.Errorf("failed to convert WIF to hex: %v", err)
+	}
+	return hexPrivateKey, nil
 }
 
 func Encrypt(data []byte, password string) ([]byte, error) {
