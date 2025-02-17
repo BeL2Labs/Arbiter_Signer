@@ -27,12 +27,23 @@ func main() {
 	flag.Parse()
 
 	if *fileToParse != "" {
-		privateKey, err := eth.ParseKeystore(*fileToParse, *password)
-		if err != nil {
-			fmt.Println("Error:", err)
-			os.Exit(1)
+		switch *chain {
+		case "eth":
+			privateKey, err := eth.ParseKeystore(*fileToParse, *password)
+			if err != nil {
+				fmt.Println("Error:", err)
+				os.Exit(1)
+			}
+			fmt.Println("Private key:", privateKey)
+		case "btc":
+			privateKey, err := btc.ParseKeystore(*fileToParse, *password)
+			if err != nil {
+				fmt.Println("Error:", err)
+				os.Exit(1)
+			}
+			fmt.Println("Private key:", privateKey)
 		}
-		fmt.Println("Private key:", privateKey)
+
 	} else {
 		switch *chain {
 		case "eth":
