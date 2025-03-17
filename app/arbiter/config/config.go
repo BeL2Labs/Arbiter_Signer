@@ -13,6 +13,7 @@ type Config struct {
 	ESCArbiterContractAddress        string
 	ESCArbiterManagerContractAddress string
 	ESCConfigManagerContractAddress  string
+	ESCOrderManagerContractAddress   string
 	ESCArbiterAddress                string
 
 	DataDir            string
@@ -27,6 +28,8 @@ type Config struct {
 	LoanNeedSignFailedPath string
 	// loan signed path
 	LoanNeedSignSignedPath string
+	// loan manually confirmed path
+	LoanManuallyConfirmedPath string
 	// loan logs path
 	LoanLogPath string
 

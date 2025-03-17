@@ -3,6 +3,32 @@
 package contract_abi
 
 const ArbiterManagerABI = `[
+{
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "arbitrator",
+          "type": "address"
+        }
+      ],
+      "name": "getArbitratorInfoExt",
+      "outputs": [
+        {
+          "components": [
+            {
+              "internalType": "uint256",
+              "name": "currentBTCFeeRate",
+              "type": "uint256"
+            }
+          ],
+          "internalType": "struct DataTypes.ArbitratorInfoExt",
+          "name": "",
+          "type": "tuple"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
     {
       "inputs": [],
       "stateMutability": "nonpayable",

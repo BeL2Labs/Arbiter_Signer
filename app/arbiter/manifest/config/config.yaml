@@ -7,10 +7,11 @@ arbiter:
   listener: true
   signer: true
   network: "mainnet"
-  escStartHeight: 28804848
-  escArbiterContractAddress: "0xA10b92006743Ef3B12077da67e465963743b03D3"
+  escStartHeight: 29632056
+  escArbiterContractAddress: "0x1f872A1fBc02A38B087DE6af2176ab0BC63a53d0"
   escArbiterManagerContractAddress: "0x9963b5214434776D043A4e98Bc7f33321F6aaCfc"
   escConfigManagerContractAddress: "0x4421c63241A262C423277FFA82C376953072d25f"
-  escArbiterAddress: "0x0262aB0ED65373cC855C34529fDdeAa0e686D913"
+  escOrderManagerContractAddress: "0x1f00FEE6B4dbbc97B8c035E1813772C38E64081d"
+  escArbiterAddress: "0x3Cf0BB575527cACf9e274a6eE879f876Dae0BC40"
   dataPath: "./app/arbiter/data"
   keyFilePath: "./app/arbiter/data/keys/"

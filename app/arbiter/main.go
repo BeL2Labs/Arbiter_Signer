@@ -106,6 +106,11 @@ func initConfig(ctx context.Context) *config.Config {
 		g.Log().Error(ctx, "get escArbiterAddress config err:", err)
 		os.Exit(1)
 	}
+	escOrderManagerAddress, err := g.Cfg().Get(ctx, "arbiter.escOrderManagerContractAddress")
+	if err != nil {
+		g.Log().Error(ctx, "get escOrderManagerAddress config err:", err)
+		os.Exit(1)
+	}
 	gDataPath, err := g.Cfg().Get(ctx, "arbiter.dataPath")
 	if err != nil {
 		g.Log().Error(ctx, "get dataPath config err:", err)
@@ -137,6 +142,7 @@ func initConfig(ctx context.Context) *config.Config {
 	loanNeedSignReqPath := gfile.Join(loanPath, "request/")
 	loanNeedSignFailedPath := gfile.Join(loanPath, "failed/")
 	loanNeedSignSignedPath := gfile.Join(loanPath, "signed/")
+	loanManuallyConfirmedPath := gfile.Join(loanPath, "confirmed/")
 	LoanSignedEventPath := gfile.Join(dataPath, "loan_signed_event/")
 
 	return &config.Config{
@@ -148,17 +154,19 @@ func initConfig(ctx context.Context) *config.Config {
 		ESCArbiterContractAddress:        escArbiterContractAddress.String(),
 		ESCArbiterManagerContractAddress: escArbiterManagerAddress.String(),
 		ESCConfigManagerContractAddress:  escConfigManagerAddress.String(),
+		ESCOrderManagerContractAddress:   escOrderManagerAddress.String(),
 		ESCArbiterAddress:                escArbiterAddress.String(),
 
 		DataDir:            dataPath,
 		EscKeyFilePath:     escKeyFilePath,
 		ArbiterKeyFilePath: arbiterKeyFilePath,
 
-		LoanNeedSignReqPath:    loanNeedSignReqPath,
-		LoanNeedSignFailedPath: loanNeedSignFailedPath,
-		LoanNeedSignSignedPath: loanNeedSignSignedPath,
-		LoanSignedEventPath:    LoanSignedEventPath,
-		LoanLogPath:            logPath,
+		LoanNeedSignReqPath:       loanNeedSignReqPath,
+		LoanNeedSignFailedPath:    loanNeedSignFailedPath,
+		LoanNeedSignSignedPath:    loanNeedSignSignedPath,
+		LoanManuallyConfirmedPath: loanManuallyConfirmedPath,
+		LoanSignedEventPath:       LoanSignedEventPath,
+		LoanLogPath:               logPath,
 	}
 }
 

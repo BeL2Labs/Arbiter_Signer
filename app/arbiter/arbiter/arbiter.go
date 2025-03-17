@@ -9,6 +9,7 @@ import (
 	"encoding/gob"
 	"encoding/hex"
 	"log"
+	"math/big"
 	"os"
 	"path/filepath"
 	"strings"
@@ -95,6 +96,7 @@ func NewArbiter(ctx context.Context, config *config.Config, password string) *Ar
 func (v *Arbiter) Start() {
 	if v.config.Signer {
 		go v.processArbiterSig()
+		go v.processManualConfirm()
 	}
 
 	if v.config.Listener {
@@ -111,6 +113,124 @@ func (v *Arbiter) listenESCContract() {
 	}
 
 	v.escNode.Start(startHeight)
+}
+
+func (v *Arbiter) processManualConfirm() {
+	g.Log().Info(v.ctx, "process manually confirm start")
+
+	for {
+		// get all deploy file
+		files, err := os.ReadDir(v.config.LoanManuallyConfirmedPath)
+		if err != nil {
+			g.Log().Error(v.ctx, "read dir error", err)
+			continue
+		}
+
+		for _, file := range files {
+			// read file
+			filePath := v.config.LoanManuallyConfirmedPath + "/" + file.Name()
+			fileContent, err := os.ReadFile(filePath)
+			if err != nil {
+				g.Log().Error(v.ctx, "read file error", err)
+				continue
+			}
+			logEvt, err := v.decodeLogEvtByFileContent(fileContent)
+			if err != nil {
+				g.Log().Error(v.ctx, "decodeLogEvtByFileContent error", err)
+				v.moveToDirectory(filePath, v.config.LoanNeedSignFailedPath+"/"+file.Name()+".mcFailed")
+				v.logger.Println("[ERR]  MCFM: decode event failed, file:", filePath)
+				continue
+			}
+			var ev = make(map[string]interface{})
+			err = v.escNode.Order_abi.UnpackIntoMap(ev, "ConfirmTransferToLenderEvent", logEvt.EventData)
+			if err != nil {
+				g.Log().Error(v.ctx, "UnpackIntoMap error", err)
+				v.moveToDirectory(filePath, v.config.LoanNeedSignFailedPath+"/"+file.Name()+".mcFailed")
+				v.logger.Println("[ERR]  MCFM: unpack event into map failed, file:", filePath)
+				continue
+			}
+			g.Log().Info(v.ctx, "ev", ev)
+			orderId := logEvt.Topics[1]
+			btcTxHash := logEvt.Topics[2]
+			arbiterAddresss := common.BytesToAddress(logEvt.Topics[3][:])
+			fee := ev["arbitratorBtcFee"].(*big.Int)
+
+			g.Log().Info(v.ctx, "orderId", hex.EncodeToString(orderId[:]))
+			g.Log().Info(v.ctx, "btcTxHash", hex.EncodeToString(btcTxHash[:]))
+			g.Log().Info(v.ctx, "arbiterAddresss", arbiterAddresss.String())
+
+			// get btc arbiter BTC address
+			arbitratorBTCAddress, err := v.escNode.GetArbiterBTCAddress(arbiterAddresss)
+			if err != nil {
+				g.Log().Error(v.ctx, "GetArbiterOperatorAddress error", err)
+				v.moveToDirectory(filePath, v.config.LoanNeedSignFailedPath+"/"+file.Name()+".mcGetArbiterOperatorAddressFailed")
+				v.logger.Println("[ERR]  MCFM: get arbiter operator address failed, block:", logEvt.Block, "tx:", logEvt.TxHash)
+				continue
+			}
+
+			btcTx, err := v.mempoolAPI.GetRawTransaction(hex.EncodeToString(btcTxHash[:]))
+			if err != nil {
+				g.Log().Error(v.ctx, "GetRawTransaction error", err)
+				// v.moveToDirectory(filePath, v.config.LoanNeedSignFailedPath+"/"+file.Name()+".GetRawTransactionFailed")
+				v.logger.Println("[ERR]  MCFM: get raw tx failed, block:", logEvt.Block, "tx:", logEvt.TxHash)
+				continue
+			}
+			// check if have enough fee
+			realFee := int64(0)
+			// feeOutputIndex := 0
+			for _, vout := range btcTx.Vout {
+				if vout.Value < 546 {
+					g.Log().Error(v.ctx, "invalid tx outputs with dust value")
+					v.moveToDirectory(filePath, v.config.LoanNeedSignFailedPath+"/"+file.Name()+".mcInvalidTxOutputs")
+					v.logger.Println("[ERR]  MCFM: invalid tx outputs with dust value, block:", logEvt.Block, "tx:", logEvt.TxHash)
+					continue
+				}
+				utxoAddr := vout.ScriptpubkeyAddress
+				if utxoAddr == arbitratorBTCAddress {
+					g.Log().Error(v.ctx, "invalid utxo address:", utxoAddr, "need to be:", arbitratorBTCAddress)
+					v.moveToDirectory(filePath, v.config.LoanNeedSignFailedPath+"/"+file.Name()+".mcInvalidUtxoAddress")
+					v.logger.Println("[ERR]  MCFM: invalid utxo address, block:", logEvt.Block, "tx:", logEvt.TxHash)
+					continue
+				}
+				if vout.Value > 0 {
+					realFee += vout.Value
+					// feeOutputIndex = i
+					break
+				}
+			}
+			// check fee rate
+			// preAmount := int64(btcTx.Vout[1-feeOutputIndex].Value)
+			// feeRate, err := v.escNode.GetManuallyConfirmedBTCFeeRate(&arbiterAddresss)
+			// if err != nil {
+			// 	g.Log().Error(v.ctx, "GetManuallyConfirmedBTCFeeRate error", err)
+			// 	v.moveToDirectory(filePath, v.config.LoanNeedSignFailedPath+"/"+file.Name()+".mcGetManuallyConfirmedBTCFeeRate")
+			// 	v.logger.Println("[ERR]  MCFM: get fee rate failed, block:", logEvt.Block, "tx:", logEvt.TxHash)
+			// 	continue
+			// }
+			// arbiterFee := preAmount * feeRate.Int64() / 10000
+			if realFee < fee.Int64() {
+				g.Log().Error(v.ctx, "invalid fee:", realFee, "need to be:", fee.Int64())
+				v.moveToDirectory(filePath, v.config.LoanNeedSignFailedPath+"/"+file.Name()+".mcInvalidFeeRate")
+				v.logger.Println("[ERR]  MCFM: invalid fee rate, block:", logEvt.Block, "tx:", logEvt.TxHash)
+				continue
+			}
+
+			// manually confirm to contract
+			orderContarctAddress := common.BytesToAddress(orderId[:])
+			txhash, err := v.escNode.SubmitManuallyConfirmed(&orderContarctAddress)
+			g.Log().Notice(v.ctx, "SubmitManuallyConfirmed", "txhash ", txhash.String(), " error ", err)
+			if err != nil {
+				v.moveToDirectory(filePath, v.config.LoanNeedSignFailedPath+"/"+file.Name()+".mcSubmitSignatureFailed")
+				v.logger.Println("[ERR]  MCFM: SubmitManuallyConfirmed failed, block:", logEvt.Block, "tx:", logEvt.TxHash, "err:", err.Error())
+			} else {
+				v.moveToDirectory(filePath, v.config.LoanNeedSignSignedPath+"/"+file.Name()+".mcSucceed")
+				v.logger.Println("[INF]  MCFM: SubmitManuallyConfirmed succeed, block:", logEvt.Block, "tx:", logEvt.TxHash)
+			}
+		}
+
+		// sleep 10s to check and process next files
+		time.Sleep(time.Second * 10)
+	}
 }
 
 func (v *Arbiter) processArbiterSig() {
@@ -382,6 +502,20 @@ func createDir(config *config.Config) error {
 
 	if !gfile.Exists(config.LoanNeedSignSignedPath) {
 		err := gfile.Mkdir(config.LoanNeedSignSignedPath)
+		if err != nil {
+			return err
+		}
+	}
+
+	if !gfile.Exists(config.LoanSignedEventPath) {
+		err := gfile.Mkdir(config.LoanSignedEventPath)
+		if err != nil {
+			return err
+		}
+	}
+
+	if !gfile.Exists(config.LoanManuallyConfirmedPath) {
+		err := gfile.Mkdir(config.LoanManuallyConfirmedPath)
 		if err != nil {
 			return err
 		}

@@ -17,6 +17,8 @@ import (
 
 type ContractListener struct {
 	loanContract  common.Address
+	orderContract common.Address
+
 	queryClient   *CrossClient
 	listeneTopics []common.Hash
 	ctx           context.Context
@@ -24,12 +26,13 @@ type ContractListener struct {
 }
 
 func NewListener(ctx context.Context, client *CrossClient,
-	loanContract common.Address, chan_event chan *events.ContractLogEvent) (*ContractListener, error) {
+	loanContract, orderContract common.Address, chan_event chan *events.ContractLogEvent) (*ContractListener, error) {
 	c := &ContractListener{
-		queryClient:  client,
-		loanContract: loanContract,
-		ctx:          ctx,
-		chan_events:  chan_event,
+		queryClient:   client,
+		loanContract:  loanContract,
+		orderContract: orderContract,
+		ctx:           ctx,
+		chan_events:   chan_event,
 	}
 	c.listeneTopics = make([]common.Hash, 0)
 	return c, nil
@@ -48,7 +51,11 @@ func (c *ContractListener) Start(startHeight uint64) (uint64, error) {
 
 	distance := uint64(10000)
 	toBlock := startHeight
-	loanQuery := c.queryClient.BuildQuery(c.loanContract, c.listeneTopics, nil, nil)
+	// addresses := []common.Address{c.orderContract}
+	addresses := []common.Address{c.loanContract, c.orderContract}
+	g.Log().Infof(c.ctx, "startHeight:%d, endBlock:%d, distance:%d", startHeight, endBlock, distance)
+	g.Log().Infof(c.ctx, "loanContract:%s, orderContract:%s", c.loanContract.String(), c.orderContract.String())
+	loanQuery := c.queryClient.BuildQuery(addresses, c.listeneTopics, nil, nil)
 	for i := startHeight; i <= endBlock-confirmBlocksCount; i += distance {
 		if i+distance < endBlock {
 			toBlock = i + distance

@@ -5,6 +5,7 @@ package contract
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"math/big"
@@ -31,10 +32,12 @@ type ArbitratorContract struct {
 	Loan_abi            abi.ABI
 	Arbiter_manager_abi abi.ABI
 	Arbiter_config_abi  abi.ABI
+	Order_abi           abi.ABI
 
 	loanContract           *common.Address
 	arbiterManagerContract *common.Address
 	configManagerContract  *common.Address
+	orderManagerContract   *common.Address
 	cfg                    *config.Config
 
 	logger *log.Logger
@@ -68,9 +71,10 @@ func New(ctx context.Context, cfg *config.Config, privateKey string, logger *log
 	loanAddress := common.HexToAddress(cfg.ESCArbiterContractAddress)
 	arbiterManagerAddress := common.HexToAddress(cfg.ESCArbiterManagerContractAddress)
 	configManagerAddress := common.HexToAddress(cfg.ESCConfigManagerContractAddress)
+	orderManangerAddress := common.HexToAddress(cfg.ESCOrderManagerContractAddress)
 	eventChan := make(chan *events.ContractLogEvent, 3)
 	chan_interrupt := make(chan struct{})
-	listener, err := NewListener(ctx, client, loanAddress, eventChan)
+	listener, err := NewListener(ctx, client, loanAddress, orderManangerAddress, eventChan)
 	if err != nil {
 		return nil, err
 	}
@@ -87,7 +91,10 @@ func New(ctx context.Context, cfg *config.Config, privateKey string, logger *log
 	if err != nil {
 		return nil, err
 	}
-
+	orderABI, err := abi.JSON(strings.NewReader(contract_abi.OrderEventManagerABI))
+	if err != nil {
+		return nil, err
+	}
 	submitter, err := NewSubmitter(ctx, client, privateKey)
 	if err != nil {
 		return nil, err
@@ -101,9 +108,11 @@ func New(ctx context.Context, cfg *config.Config, privateKey string, logger *log
 		Loan_abi:               loanABI,
 		Arbiter_manager_abi:    arbiterManagerABI,
 		Arbiter_config_abi:     arbiterConfigABI,
+		Order_abi:              orderABI,
 		loanContract:           &loanAddress,
 		arbiterManagerContract: &arbiterManagerAddress,
 		configManagerContract:  &configManagerAddress,
+		orderManagerContract:   &orderManangerAddress,
 		cfg:                    cfg,
 		logger:                 logger,
 	}
@@ -136,7 +145,7 @@ func (c *ArbitratorContract) Start(startHeight uint64) error {
 				if err != nil {
 					g.Log().Error(c.ctx, "parseContractEvent failed ", err)
 				}
-				// g.Log().Info(c.ctx, "parseContractEvent success:", evt)
+				g.Log().Info(c.ctx, "parseContractEvent success:", evt, " hash:", events.ConfirmTransferToLenderEvent, " reash hash:", evt.Topics[0])
 			}
 		}
 	}()
@@ -163,6 +172,9 @@ func (c *ArbitratorContract) parseContractEvent(event *events.ContractLogEvent) 
 	} else if event.Topics[0].Cmp(events.ArbitrationResultSubmitted) == 0 {
 		err = c.parseTransferSignedEvent(event)
 		fmt.Println("ArbitrationResultSubmitted  >>>>>>>>>>>>>>>> received")
+	} else if event.Topics[0].Cmp(events.ConfirmTransferToLenderEvent) == 0 {
+		err = c.parseConfirmTransferToLenderEvent(event)
+		fmt.Println("ConfirmTransferToLenderEvent  >>>>>>>>>>>>>>>> received")
 	}
 	return err
 }
@@ -207,6 +219,49 @@ func (c *ArbitratorContract) parseTransferSignedEvent(event *events.ContractLogE
 	}
 	g.Log().Noticef(c.ctx, "find btc tx signed:%s ", event.TxHash.String())
 	return err
+}
+
+func (c *ArbitratorContract) parseConfirmTransferToLenderEvent(event *events.ContractLogEvent) error {
+	var ev = make(map[string]interface{})
+	err := c.Order_abi.UnpackIntoMap(ev, "ConfirmTransferToLenderEvent", event.EventData)
+	if err != nil {
+		g.Log().Error(c.ctx, "parseLoanLenderManuallyConfirmedEvent UnpackIntoMap error", err)
+		return err
+	}
+	// todo how to check
+	// get btc address
+	g.Log().Info(c.ctx, "arbiter:", event.Topics[3])
+	if len(event.Topics) < 4 {
+		return errors.New("invalid event count")
+	}
+	arbiterAddress, err := c.getArbiterOperatorAddress(common.BytesToAddress(event.Topics[3][:]))
+	if err != nil {
+		g.Log().Error(c.ctx, "GetArbiterBTCAddress error", err)
+		return err
+	}
+	if arbiterAddress.String() != c.cfg.ESCArbiterAddress {
+		g.Log().Debug(c.ctx, "find ConfirmTransferToLenderEvent, but not mine")
+		return nil
+	}
+	c.logger.Println("[INF] EVENT: ConfirmTransferToLenderEvent, block:", event.Block, "tx:", event.TxHash)
+
+	path := c.cfg.LoanManuallyConfirmedPath + "/" + event.TxHash.String()
+	err = events.SaveContractEvent(path, event)
+	if err != nil {
+		g.Log().Error(c.ctx, "SaveContractEvent error", err)
+	}
+	g.Log().Noticef(c.ctx, "find btc tx lender manually confirmed:%s ", event.TxHash.String())
+	return err
+}
+
+func (c *ArbitratorContract) SubmitManuallyConfirmed(orderContractAddress *common.Address) (common.Hash, error) {
+	// function confirmTransferToLender()
+	input, err := c.Order_abi.Pack("confirmTransferToArbitrator")
+	if err != nil {
+		return common.Hash{}, err
+	}
+	hash, err := c.submitter.MakeAndSendContractTransaction(input, orderContractAddress, big.NewInt(0))
+	return hash, err
 }
 
 func (c *ArbitratorContract) SubmitArbitrationSignature(rawData []byte, queryId [32]byte) (common.Hash, error) {
@@ -281,4 +336,33 @@ func (c *ArbitratorContract) GetArbitrationBTCFeeRate() (*big.Int, error) {
 		return nil, err
 	}
 	return big.NewInt(0).SetBytes(result), nil
+}
+
+type ManuallyConfirmedBTCFeeRate struct {
+	CurrentBTCFeeRate *big.Int `json:"currentBTCFeeRate"`
+}
+
+func (c *ArbitratorContract) GetManuallyConfirmedBTCFeeRate(arbiter *common.Address) (*big.Int, error) {
+	input, err := c.Arbiter_manager_abi.Pack("getArbitratorInfoExt", arbiter)
+	if err != nil {
+		return nil, err
+	}
+	msg := ethereum.CallMsg{From: common.Address{}, To: c.configManagerContract, Data: input}
+	result, err := c.submitter.CallContract(context.TODO(), msg, nil)
+	if err != nil {
+		return nil, err
+	}
+	ev, err := c.Arbiter_manager_abi.Unpack("getArbitratorInfoExt", result)
+	if err != nil || len(ev) == 0 {
+		g.Log().Error(c.ctx, "parse ArbitratorInfo UnpackIntoMap error", err)
+		return nil, err
+	}
+	info := ManuallyConfirmedBTCFeeRate{}
+	data, err := json.Marshal(ev[0])
+	if err != nil {
+		return nil, err
+	}
+	json.Unmarshal(data, &info)
+	g.Log().Info(c.ctx, "ManuallyConfirmedBTCFeeRate", info.CurrentBTCFeeRate, "result:", result)
+	return info.CurrentBTCFeeRate, nil
 }

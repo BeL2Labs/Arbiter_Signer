@@ -62,11 +62,11 @@ func (c *CrossClient) GetLatestHeight() (uint64, error) {
 	return head.Number.Uint64(), nil
 }
 
-func (c *CrossClient) BuildQuery(contractAddress common.Address, topics []common.Hash, startBlock *big.Int, endBlock *big.Int) ethereum.FilterQuery {
+func (c *CrossClient) BuildQuery(contractAddresses []common.Address, topics []common.Hash, startBlock *big.Int, endBlock *big.Int) ethereum.FilterQuery {
 	query := ethereum.FilterQuery{
 		FromBlock: startBlock,
 		ToBlock:   endBlock,
-		Addresses: []common.Address{contractAddress},
+		Addresses: contractAddresses,
 		Topics:    [][]common.Hash{topics},
 	}
 	return query
