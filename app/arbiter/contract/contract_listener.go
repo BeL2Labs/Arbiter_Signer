@@ -53,8 +53,6 @@ func (c *ContractListener) Start(startHeight uint64) (uint64, error) {
 	toBlock := startHeight
 	// addresses := []common.Address{c.orderContract}
 	addresses := []common.Address{c.loanContract, c.orderContract}
-	g.Log().Infof(c.ctx, "startHeight:%d, endBlock:%d, distance:%d", startHeight, endBlock, distance)
-	g.Log().Infof(c.ctx, "loanContract:%s, orderContract:%s", c.loanContract.String(), c.orderContract.String())
 	loanQuery := c.queryClient.BuildQuery(addresses, c.listeneTopics, nil, nil)
 	for i := startHeight; i <= endBlock-confirmBlocksCount; i += distance {
 		if i+distance < endBlock {

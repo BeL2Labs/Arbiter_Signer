@@ -145,7 +145,7 @@ func (c *ArbitratorContract) Start(startHeight uint64) error {
 				if err != nil {
 					g.Log().Error(c.ctx, "parseContractEvent failed ", err)
 				}
-				g.Log().Info(c.ctx, "parseContractEvent success:", evt, " hash:", events.ConfirmTransferToLenderEvent, " reash hash:", evt.Topics[0])
+				// g.Log().Info(c.ctx, "parseContractEvent success:", evt)
 			}
 		}
 	}()
@@ -228,7 +228,6 @@ func (c *ArbitratorContract) parseConfirmTransferToLenderEvent(event *events.Con
 		g.Log().Error(c.ctx, "parseLoanLenderManuallyConfirmedEvent UnpackIntoMap error", err)
 		return err
 	}
-	// todo how to check
 	// get btc address
 	g.Log().Info(c.ctx, "arbiter:", event.Topics[3])
 	if len(event.Topics) < 4 {
@@ -254,8 +253,7 @@ func (c *ArbitratorContract) parseConfirmTransferToLenderEvent(event *events.Con
 	return err
 }
 
-func (c *ArbitratorContract) SubmitManuallyConfirmed(orderContractAddress *common.Address) (common.Hash, error) {
-	// function confirmTransferToLender()
+func (c *ArbitratorContract) SubmitManuallyConfirm(orderContractAddress *common.Address) (common.Hash, error) {
 	input, err := c.Order_abi.Pack("confirmTransferToArbitrator")
 	if err != nil {
 		return common.Hash{}, err

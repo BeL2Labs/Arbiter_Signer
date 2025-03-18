@@ -217,11 +217,11 @@ func (v *Arbiter) processManualConfirm() {
 
 			// manually confirm to contract
 			orderContarctAddress := common.BytesToAddress(orderId[:])
-			txhash, err := v.escNode.SubmitManuallyConfirmed(&orderContarctAddress)
+			txhash, err := v.escNode.SubmitManuallyConfirm(&orderContarctAddress)
 			g.Log().Notice(v.ctx, "SubmitManuallyConfirmed", "txhash ", txhash.String(), " error ", err)
 			if err != nil {
-				v.moveToDirectory(filePath, v.config.LoanNeedSignFailedPath+"/"+file.Name()+".mcSubmitSignatureFailed")
-				v.logger.Println("[ERR]  MCFM: SubmitManuallyConfirmed failed, block:", logEvt.Block, "tx:", logEvt.TxHash, "err:", err.Error())
+				v.moveToDirectory(filePath, v.config.LoanNeedSignFailedPath+"/"+file.Name()+".mcSubmitFailed")
+				v.logger.Println("[ERR]  MCFM: SubmitManuallyConfirm failed, block:", logEvt.Block, "tx:", logEvt.TxHash, "err:", err.Error())
 			} else {
 				v.moveToDirectory(filePath, v.config.LoanNeedSignSignedPath+"/"+file.Name()+".mcSucceed")
 				v.logger.Println("[INF]  MCFM: SubmitManuallyConfirmed succeed, block:", logEvt.Block, "tx:", logEvt.TxHash)
